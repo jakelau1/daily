@@ -21,13 +21,21 @@ const out = await new Promise(resolve => {
 const url = (out.match(/https:\/\/daily-weather-relay\.[a-z0-9-]+\.workers\.dev/i) || [])[0];
 if (!url) stop('could not find the relay\'s address in wrangler\'s output above.');
 
-// Check it answers, for this site only.
+// Check it answers, for this site only. A new deployment (or a new workers.dev name) can take a minute to be
+// reachable, so keep trying for up to 2 minutes.
+const ask = (name, origin) => fetch(`${url}/${name}`, { headers: { origin } }).catch(e => ({ ok: false, status: e.message }));
 for (const name of ['ocf', 'aqhi', 'nowcast']) {
-  const r = await fetch(`${url}/${name}`, { headers: { origin: 'https://jakelau1.github.io' } }).catch(e => ({ ok: false, status: e.message }));
+  let r;
+  for (let i = 0; i < 12; i++) {
+    r = await ask(name, 'https://jakelau1.github.io');
+    if (r.ok) break;
+    if (i === 0) console.log(`Waiting for ${url} to answer…`);
+    await new Promise(res => setTimeout(res, 10000));
+  }
   if (!r.ok) stop(`the relay's /${name} answered ${r.status}.`);
   console.log(`ok  ${url}/${name}`);
 }
-const other = await fetch(`${url}/ocf`, { headers: { origin: 'https://example.com' } });
+const other = await ask('ocf', 'https://example.com');
 if (other.status !== 403) stop('the relay answered a page from another site; it should refuse (403).');
 console.log('ok  other sites are refused');
 
