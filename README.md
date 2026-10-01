@@ -38,8 +38,9 @@ There is no build step for the site itself: the files in the repository are what
   depth; if the site moves to another repository, change that one line.
 
 ## Publishing
-`.github/workflows/record-weather.yml` ("Record weather and publish") runs twice an hour and on every push to `main`.
-It saves the latest readings into `weather/data/`, then publishes only the public folders (not `scripts/`, `tools/`,
+`.github/workflows/record-weather.yml` ("Record weather and publish") runs every 10 minutes and on every push to
+`main`. It saves the latest readings into `weather/data/`, then publishes only the public folders (scheduled runs only
+when something changed) (not `scripts/`, `tools/`,
 `partials/` or `.github/`) to GitHub Pages.
 
 1. Settings → Pages → Build and deployment → Source: **GitHub Actions** (not "Deploy from a branch"). GitHub does not
@@ -48,7 +49,7 @@ It saves the latest readings into `weather/data/`, then publishes only the publi
 3. Actions tab → "Record weather and publish" → Run workflow.
 
 Things to know:
-- The recorder commits about once or twice an hour. That is expected.
+- The recorder commits two or three times an hour (whenever a reading changes). That is expected.
 - GitHub can run scheduled jobs late or skip them when busy, so the odd past hour may be missing.
 - In public repositories GitHub may switch off scheduled workflows after 60 days without activity. If the past hours
   stop appearing, check the Actions tab and re-enable it.
@@ -114,10 +115,12 @@ GitHub, and are lost only if that browser's site data is cleared.
 - *Typhoon signal or rainstorm warning*: takes over the screen with the warning, its issue time, the clock and what's
   on now. A tap shows the schedule for 10 minutes; a new or changed warning takes over again at once.
 - The current temperature and air-quality index show under the date and turn grey when they're old.
-The warnings, current readings and sunset come straight from the Observatory (it allows this). Its hourly forecast
-and the EPD's air quality don't let other sites' pages read them, so the display uses the copies the recorder saves
-in `weather/data/`. GitHub runs the recorder irregularly (hours apart at times), so those copies can be a few hours
-old; the display checks each reading's own time and ignores or greys out old ones.
+The warnings, current readings and sunset come straight from the Observatory (it allows this). Its rain nowcast and
+hourly forecast and the EPD's air quality don't let other sites' pages read them, so the display uses the copies the
+recorder saves in `weather/data/` every 10 minutes (`nowcast.json` holds just the Happy Valley grid point). Rain
+before the walk uses the nowcast while it's fresh (under 45 minutes old) and the hourly forecast otherwise. GitHub can
+run the recorder late, so the display checks each reading's own time and ignores or greys out old ones (forecast
+after 3 hours, air quality after 2).
 
 On the phone: shifts the layout a little every 3 minutes and dims at night (from bedtime until half an hour before
 the morning routine) to reduce burn-in; asks the browser to keep the screen on; reloads once a day at 4am, but only

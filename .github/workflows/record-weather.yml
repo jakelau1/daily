@@ -1,14 +1,16 @@
-# Runs on GitHub's servers twice an hour, and whenever you push a change.
+# Runs on GitHub's servers every 10 minutes (GitHub may run these late or skip some), and whenever you push a change.
 # 1. Saves the latest Hong Kong Observatory readings into weather/data/history.json (for the past 12 hours),
 #    plus copies of the hourly forecast and air-quality feeds.
-# 2. Publishes the site (only the public folders, see "Assemble the site") to GitHub Pages.
+#    Also saves the 2-hour rain nowcast for Happy Valley (weather/data/nowcast.json) for the "now" display.
+# 2. Publishes the site (only the public folders, see "Assemble the site") to GitHub Pages. Scheduled runs only
+#    publish when the data changed; pushes and "Run workflow" always publish.
 # Step 2 is needed because GitHub does not rebuild Pages for commits made by an Action.
 # REQUIRES: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
 name: Record weather and publish
 
 on:
   schedule:
-    - cron: '12,42 * * * *'   # minutes past each hour (GitHub may run these a little late)
+    - cron: '6-56/10 * * * *' # every 10 minutes at :06, :16 … :56, away from the busy start of the hour
   push:
     branches: [main]           # change "main" if your branch has a different name
   workflow_dispatch:           # lets you press "Run workflow" by hand in the Actions tab
@@ -41,11 +43,13 @@ jobs:
       - name: Fetch data
         run: node scripts/record-weather.mjs
       - name: Save data in the repository (keeps history between runs)
+        id: save
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A "$WEATHER_DIR/data"
           if git diff --cached --quiet; then echo "Nothing new."; exit 0; fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
           git commit -m "Update weather data"
           cp -r "$WEATHER_DIR/data" /tmp/this-run-data   # this run's own copy, in case the pull below damages a file
           git pull --rebase -X theirs   # if two runs overlap, keep this run's newer data
@@ -68,13 +72,17 @@ jobs:
           done
           git push
       - name: Assemble the site (public folders only; leaves out scripts, tools, partials and .github)
+        if: steps.save.outputs.changed == 'true' || github.event_name != 'schedule'
         run: |
           mkdir _site
           cp -r index.html 404.html .nojekyll assets weather hiking arrivals cams trips savings study now _site/
       - uses: actions/configure-pages@v6
+        if: steps.save.outputs.changed == 'true' || github.event_name != 'schedule'
       - uses: actions/upload-pages-artifact@v5
+        if: steps.save.outputs.changed == 'true' || github.event_name != 'schedule'
         with:
           path: _site
       - name: Publish
+        if: steps.save.outputs.changed == 'true' || github.event_name != 'schedule'
         id: deployment
         uses: actions/deploy-pages@v5

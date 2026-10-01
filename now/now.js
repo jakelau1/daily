@@ -349,7 +349,13 @@
       fmtTime: fmtTime,
       onChange: function () { render(new Date()); }
     });
-    window.NowWx.init({ fmtTime: fmtTime, onChange: function () { render(new Date()); } });
+    window.NowWx.init({
+      fmtTime: fmtTime,
+      // today's minute -> ms, and ms -> minutes after midnight (Hong Kong time)
+      at: function (min) { var t = hkNow(new Date()); return Date.now() - ((t.min - min) * 60 + t.sec) * 1000; },
+      minOf: function (ms) { return hkNow(new Date(ms)).min; },
+      onChange: function () { render(new Date()); }
+    });
     $('app').addEventListener('click', function (e) { if (e.target !== el.wake) window.NowPlan.tap(); });
     root.style.setProperty('--stale-after', STALE_AFTER + 's');
     shown.left = '';

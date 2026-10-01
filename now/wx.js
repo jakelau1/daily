@@ -2,11 +2,12 @@
 //   warnings            Observatory warning summary (live)            -> typhoon / rainstorm takeover, heat warning
 //   current readings    Observatory hourly readings (live)            -> Happy Valley temperature, Wan Chai rainfall
 //   sunset              Observatory sunrise/sunset table (live)       -> "ends after sunset"
-//   hourly forecast     the recorder's copy, ../weather/data/ocf.json -> rain and temperature by hour
-//   air quality         the recorder's copy, ../weather/data/aqhi.json-> Eastern station and the forecast
-// The forecast and air-quality servers don't let other web pages read them (checked: no CORS permission), so only
-// the copies saved by .github/workflows/record-weather.yml can be used. GitHub runs that recorder late or
-// irregularly, so each reading keeps its own time and is shown as old (greyed) when it is.
+//   rain nowcast        the recorder's copy, ../weather/data/nowcast.json -> rain in the next 2 hours at Happy Valley
+//   hourly forecast     the recorder's copy, ../weather/data/ocf.json     -> rain and temperature by hour
+//   air quality         the recorder's copy, ../weather/data/aqhi.json    -> Eastern station and the forecast
+// The nowcast, forecast and air-quality servers don't let other web pages read them (checked: no CORS permission),
+// so the copies saved every 10 minutes by .github/workflows/record-weather.yml are used. GitHub can run that
+// recorder late, so each reading keeps its own time and is ignored or greyed out once it is old.
 (function () {
   'use strict';
   var API = 'https://data.weather.gov.hk/weatherAPI/opendata/';
@@ -16,8 +17,11 @@
   var RAIN_ICONS = [53, 54, 62, 63, 64, 65];       // Observatory weather icons with showers or rain (as the Weather page)
   var HOT = 33;                                    // °C
   var POOR_AIR = 7;                                // AQHI: 7 and above is "High" health risk or worse
-  var EVERY = { warn: 5, now: 10, ocf: 30, aqhi: 30, srs: 360 };               // minutes between fetches
-  var OLD_AFTER = { warn: 20, now: 90, ocf: 18 * 60, aqhi: 4 * 60, srs: 48 * 60 }; // minutes before a reading counts as old
+  var RAIN_MM = 0.5;                               // nowcast: this much in half an hour counts as rain
+  var EVERY = { warn: 5, now: 10, nowcast: 5, ocf: 15, aqhi: 10, srs: 360 };                 // minutes between fetches
+  // Minutes after a reading's own time before it counts as old. The sources update: nowcast every few minutes,
+  // forecast about every 2 hours, air quality hourly, current readings hourly.
+  var OLD_AFTER = { warn: 20, now: 90, nowcast: 45, ocf: 3 * 60, aqhi: 2 * 60, srs: 48 * 60 };
 
   var S = {};      // source -> { data, fetched (ms), time (ms of the reading itself), error }
   var opt;
@@ -49,6 +53,9 @@
       return get(API + 'opendata.php?dataType=SRS&rformat=json&year=' + d.y + '&month=' + d.m).then(function (j) {
         return { data: j, time: Date.now() };
       });
+    },
+    nowcast: function () {
+      return get(COPY + 'nowcast.json').then(function (j) { return { data: j, time: Date.parse(j && j.updated) }; });
     },
     ocf: function () {
       return get(COPY + 'ocf.json').then(function (j) {
@@ -192,8 +199,17 @@
   function prompts(item) {
     var out = [];
     if (item.walk) {
+      var nc = !old('nowcast') && S.nowcast.data.periods || [];
+      // half-hour periods (each ends at p.end) that overlap the walk; only if the 2-hour nowcast reaches the walk
+      var covers = nc.length && Date.parse(nc[nc.length - 1].end) >= opt.at(item.start);
+      var wetNc = nc.filter(function (p) {
+        var end = Date.parse(p.end), from = end - 30 * 60e3;
+        return p.mm >= RAIN_MM && end > opt.at(item.start) && from < opt.at(item.end);
+      });
       if (rainingNow()) out.push('Raining in ' + RAIN_PLACE + ' now');
-      else {
+      else if (covers) {
+        if (wetNc.length) out.push('Rain expected from about ' + opt.fmtTime(opt.minOf(Math.max(Date.parse(wetNc[0].end) - 30 * 60e3, Date.now()))));
+      } else {
         var wet = hours('ForecastWeather', Math.floor(item.start / 60) * 60 - 60, item.end).filter(function (h) { return RAIN_ICONS.indexOf(+h.value) >= 0; });
         if (wet.length && !old('ocf')) out.push('Showers forecast around ' + opt.fmtTime(wet[0].min));
       }

@@ -85,7 +85,7 @@ const at = (day, min) => new Date(MONDAY + (day * DAY + min) * 60e3);
 // WX is changed by the tests; every request is answered from it at that moment. simNow follows the simulated clock,
 // so readings carry believable times.
 const WX = { warn: {}, raining: false, nowTemp: 28, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low',
-  sunset: '18:07', fail: false, airAgeMin: 30 };
+  sunset: '18:07', fail: false, airAgeMin: 30, nowcast: { ageMin: 10, mm: [0, 0, 0, 0] } };
 let simNow = MONDAY;
 const hk = ms => { const d = new Date(ms + 8 * 3600e3); return { y: d.getUTCFullYear(), mo: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), wd: d.getUTCDay() }; };
 const p2 = n => String(n).padStart(2, '0');
@@ -130,6 +130,11 @@ async function newContext() {
   });
   await c.route('**/daily/weather/data/ocf.json*', route => json(route, ocfFixture()));
   await c.route('**/daily/weather/data/aqhi.json*', route => json(route, aqhiFixture()));
+  await c.route('**/daily/weather/data/nowcast.json*', route => {
+    const up = Math.floor((simNow - WX.nowcast.ageMin * 60e3) / 60e3) * 60e3;
+    const iso = ms => { const t = hk(ms); return `${t.y}-${p2(t.mo)}-${p2(t.d)}T${p2(t.h)}:${p2(t.mi)}:00+08:00`; };
+    return json(route, { updated: iso(up), lat: 22.268, lon: 114.182, periods: WX.nowcast.mm.map((mm, i) => ({ end: iso(up + (i + 1) * 30 * 60e3), mm })) });
+  });
   return c;
 }
 
@@ -418,17 +423,24 @@ console.log('Weather prompts and warnings');
     return screen(page);
   }
   const has = (s, text) => s.prompt.includes(text);
-  Object.assign(WX, { warn: {}, raining: false, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low', fail: false, airAgeMin: 30 });
+  Object.assign(WX, { warn: {}, raining: false, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low', fail: false, airAgeMin: 30,
+    nowcast: { ageMin: 90, mm: [0, 0, 0, 0] } });
 
   page = await newPage(ctx3, at(0, 8 * 60));
   await unlock(page);
   await page.locator('#app').waitFor({ timeout: 30000 });
   check(!!walk && !!move, 'expected a dog walk step and a Monday Movement block');
 
-  WX.icons[d0 + p2(walk.start / 60)] = 63;                  // showers in the walk's hour
-  let s = await wxAt(page, 0, walk.start - 40);
+  WX.icons[d0 + p2(walk.start / 60)] = 63;                  // showers in the walk's hour, and the nowcast is old
+  let s = await wxAt(page, 0, walk.start - 55);
   check(has(s, `Showers forecast around ${fmtT(walk.start)}`) && has(s, `${walk.title} at ${fmtT(walk.start)}:`),
-    `rain prompt before the walk: "${s.prompt}"`);
+    `rain prompt before the walk (hourly forecast, nowcast old): "${s.prompt}"`);
+  WX.nowcast = { ageMin: 5, mm: [0, 0, 0, 0] };              // a fresh nowcast says dry: it wins over the hourly forecast
+  s = await wxAt(page, 0, walk.start - 45);
+  check(s.prompt === '', `fresh dry nowcast should override the hourly forecast: "${s.prompt}"`);
+  WX.nowcast = { ageMin: 5, mm: [0, 1.5, 0, 0] };            // rain in the nowcast's second half-hour
+  s = await wxAt(page, 0, walk.start - 35);
+  check(has(s, `Rain expected from about ${fmtT(walk.start - 10)}`), `rain prompt from the nowcast: "${s.prompt}"`);
   await goTo(page, 0, walk.start - 15);
   await page.screenshot({ path: `${SHOTS}/18-rain-before-walk.png` });
   WX.raining = true;

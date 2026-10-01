@@ -64,10 +64,17 @@ const tidy = a => a.filter(e => Date.parse(e.t) >= cutoff).sort((x, y) => Date.p
 hist.temps = tidy(hist.temps); hist.gauges = tidy(hist.gauges);
 await writeIfChanged(histFile, hist);
 
-// 2) Backup copy of the hourly computer forecast (only changes about twice a day).
+// 2) Backup copy of the hourly computer forecast (the Observatory updates it about every 2 hours).
+//    The recorder runs every 10 minutes, so first check one point and skip the rest if nothing is new.
 const ocfFile = path.join(DIR, 'ocf.json');
 const ocf = await readJSON(ocfFile, { stations: {} });
-for (const code of OCF_CODES) {
+let ocfNew = true;
+try {
+  const probe = await json('https://maps.weather.gov.hk/ocf/dat/HKO.xml');
+  ocfNew = !probe || !ocf.stations.HKO || String(probe.LastModified) !== String(ocf.stations.HKO.LastModified);
+} catch (e) { /* fetch them all below */ }
+if (!ocfNew) console.log('Hourly forecast unchanged since the last run.');
+for (const code of ocfNew ? OCF_CODES : []) {
   try {
     const j = await json(`https://maps.weather.gov.hk/ocf/dat/${code}.xml`);
     if (!j || !Array.isArray(j.HourlyWeatherForecast)) continue;
@@ -80,7 +87,27 @@ for (const code of OCF_CODES) {
 }
 await writeIfChanged(ocfFile, ocf);
 
-// 3) Backup copy of the air-quality feeds.
+// 3) Rain nowcast for the next 2 hours at the grid point nearest Happy Valley (the "now" display's rain prompt).
+//    The Observatory's file covers the whole region (about 2.7 MB); only four numbers are kept.
+const NOWCAST_AT = { lat: 22.2706, lon: 114.184 };   // Happy Valley weather station
+try {
+  const rows = (await text('https://data.weather.gov.hk/weatherAPI/hko_data/F3/Gridded_rainfall_nowcast.csv')).trim().split(/\r?\n/).slice(1)
+    .map(l => l.split(',')).filter(r => r.length >= 5);
+  let best = null, bestD = Infinity;
+  for (const r of rows) {
+    const d = (+r[2] - NOWCAST_AT.lat) ** 2 + (+r[3] - NOWCAST_AT.lon) ** 2;
+    if (d < bestD) { bestD = d; best = r; }
+  }
+  if (!best) throw new Error('no rows');
+  const iso = t => `${t.slice(0, 4)}-${t.slice(4, 6)}-${t.slice(6, 8)}T${t.slice(8, 10)}:${t.slice(10, 12)}:00+08:00`;
+  const mine = rows.filter(r => r[2] === best[2] && r[3] === best[3]);
+  await writeIfChanged(path.join(DIR, 'nowcast.json'), {
+    updated: iso(best[0]), lat: +best[2], lon: +best[3],
+    periods: mine.map(r => ({ end: iso(r[1]), mm: +r[4] })).sort((a, b) => a.end.localeCompare(b.end))
+  });
+} catch (e) { console.error('Rain nowcast:', e.message); }
+
+// 4) Backup copy of the air-quality feeds.
 try {
   const ind = await text('https://www.aqhi.gov.hk/epd/ddata/html/out/aqhi_ind_rss_Eng.xml');
   const range = await text('https://www.aqhi.gov.hk/epd/ddata/html/out/aqhirss_Eng.xml');
