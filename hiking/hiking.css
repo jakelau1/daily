@@ -1,0 +1,306 @@
+/* Hiking page. Colours, type and spacing follow the weather page (../index.html). */
+:root{
+  --paper:#edf2f3; --panel:#f7fafa; --ink:#15232c; --mute:#55656e; --line:#d2dcdf;
+  --tram:#1d6a44; --amber:#875c00; --red:#c3362b;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Noto Serif","Source Serif Pro",Georgia,serif;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans","Helvetica Neue",Arial,sans-serif;
+  /* Map line colours, for the light map. Dark mode shows a dark map and uses its own set, below. */
+  --trail:#1d6a44; --trail-edge:#ffffff; --route:#0b3d91; --route-edge:#ffffff;
+  --closed:#c3362b; --diversion:#b86e00; --closure-edge:#ffffff;
+  --sea:#cceeff;                     /* the map tiles' own sea colour */
+  --on-accent:#fff;                  /* text on a green button */
+  --panel-w:25rem; --sheet-peek:13.5rem;
+  color-scheme:light dark;
+}
+/* Dark colours: used when the viewer picks Dark, or leaves the choice on Auto (the default)
+   and the device is in dark mode. The choice is set as data-theme on <html> by js/theme-init.js. */
+:root[data-theme="dark"]{--paper:#0f1a21;--panel:#15232c;--ink:#e2eaed;--mute:#93a3ac;--line:#243540;--tram:#56b888;
+  --amber:#e0a93a;--red:#ff8a7e;--on-accent:#0f1a21;color-scheme:dark}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--paper:#0f1a21;--panel:#15232c;--ink:#e2eaed;--mute:#93a3ac;--line:#243540;--tram:#56b888;
+    --amber:#e0a93a;--red:#ff8a7e;--on-accent:#0f1a21}
+}
+:root[data-theme="light"]{color-scheme:light}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;height:100%}
+body{margin:0;height:100%;background:var(--paper);color:var(--ink);font:16px/1.5 var(--sans);
+  display:flex;flex-direction:column;overflow:hidden}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--tram);outline-offset:2px;border-radius:4px}
+.visually-hidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.muted{color:var(--mute)}
+.small{font-size:.85rem}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--tram)}
+
+/* ---------- Top bar ---------- */
+/* A whole number of pixels tall, so the map below starts on a whole pixel. */
+.topbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.5rem;flex:none;
+  height:calc(52px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) max(1.25rem,env(safe-area-inset-right)) 0 max(1.25rem,env(safe-area-inset-left));
+  border-bottom:1px solid var(--line);background:var(--paper);position:relative;z-index:1100}
+.topbar h1{margin:0;font:400 1.3rem/1.2 var(--serif);letter-spacing:-.005em;text-align:center;white-space:nowrap}
+.topbar a{color:var(--tram);font-weight:600;text-decoration:none;font-size:.95rem;padding:.3rem 0}
+.topbar a:hover{text-decoration:underline;text-underline-offset:3px}
+.topbar .back{justify-self:start}
+.topbar .top-right{justify-self:end;display:flex;align-items:center;gap:.3rem;position:relative}
+
+/* Colours button and its menu (js/theme.js) */
+.theme-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;margin-right:-6px;border:0;
+  border-radius:50%;background:none;color:var(--tram);cursor:pointer;padding:0}
+.theme-btn:hover,.theme-btn[aria-expanded="true"]{background:var(--line)}
+.theme-btn svg{width:21px;height:21px}
+.theme-menu{position:absolute;top:calc(100% + 10px);right:-.5rem;z-index:1200;min-width:11.5rem;padding:.3rem;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.2)}
+.theme-menu[hidden]{display:none}
+.theme-menu button{display:flex;align-items:center;gap:.65rem;width:100%;border:0;background:none;border-radius:8px;
+  padding:.55rem .7rem;font-size:.95rem;text-align:left;cursor:pointer}
+.theme-menu button:hover{background:var(--line)}
+.theme-menu button svg{width:19px;height:19px;flex:none;color:var(--mute)}
+.theme-menu button[aria-checked="true"]{font-weight:600}
+.theme-menu button[aria-checked="true"] svg{color:var(--tram)}
+.theme-menu button[aria-checked="true"]::after{content:"✓";margin-left:auto;color:var(--tram)}
+.theme-menu p{margin:.15rem .7rem .35rem;font-size:.78rem;color:var(--mute)}
+
+/* ---------- Layout ---------- */
+.layout{position:relative;flex:1;min-height:0}
+.map{position:absolute;inset:0;background:var(--sea)}
+
+/* The panel: a pull-up sheet on phones, a side panel on computers. */
+.panel{position:absolute;left:0;right:0;bottom:0;z-index:1000;display:flex;flex-direction:column;
+  background:var(--paper);border-radius:18px 18px 0 0;box-shadow:0 -4px 22px rgba(0,0,0,.18);
+  height:var(--sheet-peek);max-height:calc(100% - 1rem);transition:height .25s ease;
+  padding-bottom:env(safe-area-inset-bottom)}
+.panel[data-size="half"]{height:52%}
+.panel[data-size="full"]{height:calc(100% - 1rem)}
+.panel.dragging{transition:none}
+.handle{flex:none;display:flex;justify-content:center;align-items:center;width:100%;height:1.6rem;
+  border:0;background:none;cursor:grab;touch-action:none;padding:0}
+.handle::before{content:"";width:2.6rem;height:.3rem;border-radius:.15rem;background:var(--line)}
+.handle:focus-visible::before{background:var(--tram)}
+.panel-body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:0 1.25rem 1.5rem;-webkit-overflow-scrolling:touch}
+@media (min-width:60rem){
+  .panel{top:0;right:auto;width:var(--panel-w);height:auto!important;max-height:none;border-radius:0;
+    box-shadow:none;border-right:1px solid var(--line);transition:none}
+  .handle{display:none}
+  .panel-body{padding-top:1rem}
+  .map{left:var(--panel-w)}
+}
+@media (prefers-reduced-motion:reduce){.panel{transition:none}}
+
+/* ---------- List view ---------- */
+.search{display:flex;gap:.5rem;align-items:center;margin:.1rem 0 .6rem}
+.search input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel);border-radius:999px;
+  padding:.5rem .95rem;font-size:1rem}
+.filters{display:flex;gap:.35rem}
+.filters select{flex:1 1 0;min-width:0;text-overflow:ellipsis;appearance:none;-webkit-appearance:none;border:1px solid var(--line);background:var(--panel);
+  border-radius:999px;padding:.35rem 1.5rem .35rem .7rem;font-size:.85rem;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:right .85rem center,right .6rem center;background-size:.25rem .25rem;background-repeat:no-repeat}
+.filters select.on{border-color:var(--tram);color:var(--tram);font-weight:600}
+.list-meta{display:flex;justify-content:space-between;gap:.5rem;align-items:baseline;margin:.7rem 0 .2rem;font-size:.85rem;color:var(--mute)}
+.list-meta button{background:none;border:0;padding:0;color:var(--tram);font-weight:600;cursor:pointer;font-size:.85rem}
+.closure-note{font-size:.8rem;color:var(--mute);margin:.2rem 0 .6rem}
+.closure-note.old{color:var(--amber)}
+.routes{list-style:none;margin:0;padding:0}
+.routes li{border-bottom:1px solid var(--line)}
+.routes li:first-child{border-top:1px solid var(--line)}
+.route-btn{width:100%;display:block;background:none;border:0;padding:.65rem 0;cursor:pointer;text-align:left}
+.route-btn .en{font-weight:600;display:block;line-height:1.3}
+.route-btn .tc{display:block;font-size:.88rem;color:var(--mute);line-height:1.35}
+.route-btn .facts{display:flex;flex-wrap:wrap;gap:.15rem .7rem;font-size:.82rem;color:var(--mute);margin-top:.2rem}
+.group > .route-btn .count{font-weight:400;color:var(--mute);font-size:.85rem}
+.group > .route-btn::after{content:"";float:right;width:.5rem;height:.5rem;margin:.45rem .2rem 0 0;border:solid var(--mute);
+  border-width:0 2px 2px 0;transform:rotate(45deg)}
+.group.open > .route-btn::after{transform:rotate(-135deg);margin-top:.6rem}
+.group ul{list-style:none;margin:0 0 .4rem;padding:0 0 0 .9rem;border-left:2px solid var(--line)}
+.group ul li{border-bottom:0;border-top:0!important}
+.group ul .route-btn{padding:.45rem 0}
+.empty{padding:1rem 0;color:var(--mute)}
+.routes .subhead{border:0;padding:1.1rem 0 .3rem;font:400 1rem var(--serif);color:var(--mute)}
+.route-btn .match-note{display:block;font-size:.82rem;color:var(--tram);margin-top:.1rem}
+
+/* Difficulty: words plus a 1-5 dot scale, never colour alone */
+.dots{letter-spacing:.08em;font-size:.72rem;vertical-align:.05em}
+.dots i{font-style:normal;color:var(--mute)}
+.dots b{font-weight:400;color:var(--ink)}
+
+/* Closure badges: an icon and a word, as well as colour */
+.badge{display:inline-flex;align-items:center;gap:.25rem;border-radius:999px;padding:.05rem .5rem;font-size:.78rem;font-weight:650;
+  border:1.5px solid currentColor;line-height:1.35;white-space:nowrap}
+.badge.closed{color:var(--red)}
+.badge.partly{color:var(--red);border-style:dashed}
+.badge.diversion{color:var(--amber);border-style:dashed}
+.badge svg{width:.8rem;height:.8rem}
+
+/* ---------- Route view ---------- */
+.toggle-btn{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:.4rem 1rem;cursor:pointer;
+  font-size:.9rem;font-weight:600;color:var(--tram);margin:.5rem 0 0}
+.toggle-btn[aria-pressed="true"]{background:var(--tram);color:var(--on-accent);border-color:var(--tram)}
+.route .closures-top{border-top:0;padding-top:.2rem}
+.back-btn{background:none;border:0;padding:.2rem 0;color:var(--tram);font-weight:600;cursor:pointer;margin:.1rem 0 .4rem}
+.route h2{font:400 1.45rem/1.2 var(--serif);margin:0;letter-spacing:-.005em}
+[tabindex="-1"]:focus{outline:none}
+.route .tc-name{font-size:1rem;color:var(--mute);margin:.1rem 0 .5rem}
+.route .badges{display:flex;flex-wrap:wrap;gap:.35rem;margin:.1rem 0 .6rem}
+.route section{padding:.9rem 0;border-top:1px solid var(--line)}
+.route h3{font:600 .95rem/1.3 var(--sans);margin:0 0 .45rem}
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:14px;padding:.2rem;background:var(--panel);gap:.2rem}
+.seg button{flex:1 1 auto;border:0;background:none;border-radius:11px;padding:.4rem .7rem;cursor:pointer;font-size:.88rem;line-height:1.3;text-align:center}
+.seg button[aria-pressed="true"]{background:var(--tram);color:var(--on-accent);font-weight:600}
+.caveat{font-size:.85rem;color:var(--mute);margin:.45rem 0 0}
+.caveat.warn{border-left:3px solid var(--amber);padding-left:.6rem;color:var(--ink)}
+.stats{display:grid;grid-template-columns:1fr 1fr;margin:0;border-top:1px solid var(--line)}
+.stats > div{padding:.6rem 0;border-bottom:1px solid var(--line)}
+.stats > div:nth-child(odd){padding-right:.8rem;border-right:1px solid var(--line)}
+.stats > div:nth-child(even){padding-left:.8rem}
+.stats dt{font-size:.8rem;color:var(--mute)}
+.stats dd{margin:.05rem 0 0;font-size:1.25rem;font-weight:300;font-variant-numeric:tabular-nums;line-height:1.25}
+.stats dd small{display:block;font-size:.76rem;color:var(--mute);font-weight:400;line-height:1.35;margin-top:.1rem}
+.facts-list{display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;margin:0;font-size:.92rem}
+.facts-list dt{color:var(--mute)}
+.facts-list dd{margin:0}
+.facts-list .sub{display:block;color:var(--mute);font-size:.85rem}
+.stats .both-lengths{display:block;font-size:1rem;font-weight:400;line-height:1.35}
+.closure-item{border-left:3px solid var(--red);padding:.1rem 0 .1rem .7rem;margin:.5rem 0}
+.closure-item.diversion{border-left-color:var(--amber)}
+.closure-item p{margin:0}
+.note{border-left:3px solid var(--tram);padding:.1rem 0 .1rem .7rem;margin:.5rem 0;font-size:.92rem}
+.note p{margin:0 0 .3rem}
+
+/* Height profile (drawn as SVG by profile.js) */
+.profile{position:relative;margin:.6rem 0 .2rem;touch-action:pan-y}
+.profile svg{display:block;width:100%;height:auto;color:var(--ink);overflow:visible}
+.profile:focus-visible{outline:3px solid var(--tram);outline-offset:4px}
+.profile .grid line{stroke:var(--line);stroke-width:1}
+.profile text{font:11px var(--sans);fill:var(--mute)}
+.profile .area{fill:var(--tram);opacity:.16}
+.profile .line{fill:none;stroke:var(--tram);stroke-width:2;stroke-linejoin:round}
+.profile .mark{fill:var(--ink)}
+.profile .mark-label{fill:var(--ink);font-weight:600}
+.profile .cursor[hidden]{display:none}
+.profile .cursor line{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 3}
+.profile .cursor circle{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+.profile-readout{font-size:.82rem;color:var(--mute);min-height:1.3em;font-variant-numeric:tabular-nums}
+
+/* ---------- About ---------- */
+.about h2{font:400 1.45rem/1.2 var(--serif);margin:.2rem 0 .8rem}
+.about h3{font:400 1.1rem/1.3 var(--serif);margin:1.2rem 0 .4rem}
+.about p,.about li{font-size:.93rem}
+.about ul{padding-left:1.1rem;margin:.3rem 0 .6rem}
+.about .tc{color:var(--mute)}
+.about .emergency{border:2px solid var(--red);border-radius:12px;padding:.7rem .9rem;margin:.6rem 0}
+.about .emergency strong{font-size:1.05rem}
+.about code{font-size:.9em}
+
+/* ---------- Map overlays ---------- */
+.status{position:absolute;left:50%;top:.75rem;transform:translateX(-50%);z-index:1050;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:999px;
+  padding:.3rem .9rem;font-size:.85rem;box-shadow:0 2px 10px rgba(0,0,0,.12);pointer-events:none;max-width:calc(100% - 7rem);text-align:center}
+.status:empty{display:none}
+.status.err{color:var(--red)}
+.map-hint{position:absolute;left:50%;top:3.6rem;transform:translateX(-50%);z-index:1050;pointer-events:none;
+  background:var(--ink);color:var(--paper);border-radius:999px;padding:.35rem .95rem;font-size:.85rem;font-weight:600;
+  box-shadow:0 2px 10px rgba(0,0,0,.2);white-space:nowrap}
+.map-hint[hidden]{display:none}
+@media (min-width:60rem){.status,.map-hint{left:calc(var(--panel-w) + (100% - var(--panel-w))/2)}}
+
+.leaflet-container{font:inherit;font-size:.8rem}
+.leaflet-container a{color:var(--tram)}
+.leaflet-bar a,.leaflet-bar a:hover,.leaflet-bar button{background:var(--panel);color:var(--ink);border-bottom-color:var(--line)}
+.leaflet-bar{border:1px solid var(--line)!important;box-shadow:0 2px 10px rgba(0,0,0,.12)!important}
+.leaflet-control a:focus-visible,.leaflet-control button:focus-visible{outline:3px solid var(--tram);outline-offset:1px}
+.leaflet-control-attribution.leaflet-control{background:var(--panel);color:var(--mute);opacity:.94;
+  padding:.15rem .5rem;line-height:25px;border-radius:6px}
+.leaflet-top.leaflet-left .leaflet-control-attribution{margin:.5rem 0 0 .5rem}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--ink)}
+.leaflet-popup-content{margin:.7rem .9rem;font-size:.88rem;line-height:1.45}
+.leaflet-popup-content h4{margin:0 0 .1rem;font-size:.95rem}
+.leaflet-popup-content p{margin:.25rem 0}
+.leaflet-container a.leaflet-popup-close-button{color:var(--mute)}
+.leaflet-tooltip{background:var(--panel);color:var(--ink);border-color:var(--line)}
+
+/* Lands Department credit: logo shown as in LandsD's own Map API sample code (25 x 25 px) */
+.landsd-credit{display:inline-flex;align-items:center;white-space:nowrap}
+.landsd-logo{width:25px;height:25px;display:inline-flex;margin-left:4px;
+  background:url(img/landsd-logo.jpg);background-size:25px}
+
+/* Map buttons (layers, my location) */
+.map-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:0;cursor:pointer;padding:0}
+.map-btn svg{width:18px;height:18px}
+.map-btn[aria-pressed="true"],.map-btn[aria-expanded="true"]{color:var(--tram)}
+.layers-box{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:.55rem .8rem;
+  box-shadow:0 2px 10px rgba(0,0,0,.12);font-size:.88rem;min-width:12rem}
+.layers-box[hidden]{display:none}
+.layers-box label{display:flex;gap:.5rem;align-items:center;padding:.25rem 0;cursor:pointer}
+.layers-box input{accent-color:var(--tram);width:1.05rem;height:1.05rem;margin:0}
+.layers-box .hint{font-size:.78rem;color:var(--mute);margin:.1rem 0 0 1.55rem}
+
+/* Point symbols: each layer has its own shape and letter, not just a colour */
+.pin{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
+  border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);color:#fff;font:700 12px/1 var(--sans)}
+.pin.camp{background:#7a4b16;border-radius:5px}
+.pin.visitor{background:#0b5f8a}
+.pin.location{background:#1a73e8;width:18px;height:18px;border-width:3px}
+.post{display:inline-block;background:#fff;color:#15232c;border:1.5px solid #15232c;border-radius:4px;
+  font:700 10.5px/1 var(--sans);padding:2px 3px;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.3);transform:translate(-50%,-50%)}
+.post.unsure{border-style:dashed}
+.end-label{background:#0b3d91;color:#fff;border:2px solid #fff;border-radius:999px;font:700 11px/1 var(--sans);
+  padding:3px 7px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.35);transform:translate(-50%,-50%);display:inline-block}
+.end-label.finish{background:#fff;color:#0b3d91;border-color:#0b3d91}
+.divicon-reset{background:none;border:0}
+
+/* ---------- Dark map ----------
+   In dark mode the Lands Department tiles (base map and place names) are inverted, with the
+   hues turned back round, so the sea is dark and labels light. Nothing else is filtered: not
+   the Lands Department logo or credit, the buttons, or our own lines. Light shows the
+   original map. Lines get colours that stand out on the dark map, with dark edges. */
+:root[data-theme="dark"] .leaflet-layer.basemap,
+:root[data-theme="dark"] .leaflet-layer.labels{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+:root[data-theme="dark"]{--sea:#0c2331;
+  --trail:#6fd694;--trail-edge:#0b1410;--route:#7cc7ff;--route-edge:#08131c;--closed:#ff6f61;--diversion:#ffb84d;--closure-edge:#1c0d0b}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .leaflet-layer.basemap,
+  :root:not([data-theme="light"]) .leaflet-layer.labels{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(.9)}
+  :root:not([data-theme="light"]){--sea:#0c2331;
+    --trail:#6fd694;--trail-edge:#0b1410;--route:#7cc7ff;--route-edge:#08131c;--closed:#ff6f61;--diversion:#ffb84d;--closure-edge:#1c0d0b}
+}
+
+/* ---------- Combined-site skin: dark glass over the map (overrides above) ---------- */
+:root{
+  --sans:"Bricolage Grotesque","Avenir Next","Segoe UI Variable","Helvetica Neue",sans-serif;
+  --serif:"Bricolage Grotesque","Avenir Next","Segoe UI Variable","Helvetica Neue",sans-serif;
+  --mono:"Martian Mono",ui-monospace,monospace;
+  --paper:#0a1510; --panel:#12261c; --ink:#e8f0ea; --mute:#9db3a5; --line:rgba(255,255,255,.14);
+  --tram:#8cc084; --on-accent:#0a1510; --amber:#f5b83d; --red:#ff8a7e;
+  --glass:color-mix(in srgb,#0a1510 72%,transparent);
+  color-scheme:dark;
+}
+body{background:#0a1510;letter-spacing:0}
+.zh{font-family:"LXGW WenKai TC","Kaiti TC","STKaiti",serif;letter-spacing:.04em}
+.topbar{grid-template-columns:auto 1fr auto;gap:1.2rem;background:color-mix(in srgb,#0a1510 62%,transparent);
+  -webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.15)}
+.topbar .brand{display:inline-flex;align-items:baseline;gap:.6rem;color:#fff;font-weight:600;letter-spacing:.16em;font-size:.85rem;text-decoration:none}
+.topbar .brand .zh{font-size:1.1rem;letter-spacing:.06em;color:#8cc084}
+.topbar .brand:hover{text-decoration:none}
+.topbar h1{font:300 1.25rem/1.2 var(--sans);letter-spacing:-.02em;text-align:left}
+.topbar h1 .zh{font-size:.8em;color:#8cc084;margin-left:.3em}
+.topbar .top-right{gap:1.4rem}
+.topbar .sect,.topbar .about-link{color:#fff;font-weight:600;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;opacity:.82}
+.topbar .sect:hover,.topbar .about-link:hover{opacity:1;text-decoration:none}
+@media(max-width:1000px){.topbar .sect,.topbar .about-link{display:none}.topbar{grid-template-columns:auto 1fr auto}}
+@media(max-width:520px){.topbar .brand-en{display:none}.topbar h1{font-size:1.1rem}}
+.panel{background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(150%);backdrop-filter:blur(24px) saturate(150%);
+  border:1px solid rgba(255,255,255,.15);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 -10px 40px rgba(0,0,0,.4)}
+.num,.panel .num{font-family:var(--mono);letter-spacing:-.03em}
+@media(min-width:60rem){.panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.2),12px 0 40px rgba(0,0,0,.4)}}
+
+/* ---------- Section menu (all screen sizes; the inline links only show on wide screens) ---------- */
+.topbar .menu-btn{font:600 .68rem/1 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:.55rem .95rem;cursor:pointer}
+.topbar .menu-btn:hover,.topbar .menu-btn[aria-expanded=true]{background:rgba(255,255,255,.2)}
+.menu-panel{position:absolute;top:100%;right:0;left:0;z-index:1100;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0 1.5rem;padding:1rem max(1.25rem,env(safe-area-inset-right)) 1.5rem;background:color-mix(in srgb,#0a1510 86%,transparent);-webkit-backdrop-filter:blur(26px) saturate(160%);backdrop-filter:blur(26px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.15)}
+.menu-panel[hidden]{display:none}
+.menu-panel a{display:flex;justify-content:space-between;align-items:baseline;padding:.85rem 0;border-top:1px solid rgba(255,255,255,.14);color:#fff;text-decoration:none;font-size:1rem}
+.menu-panel a:hover{color:#8cc084}
+.menu-panel a[aria-current=page]{color:#8cc084}
+.menu-panel .zh{color:#8cc084;font-size:.9em}

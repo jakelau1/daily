@@ -1,0 +1,20 @@
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-nav>
+  <div class="nav-in">
+    <a class="wordmark" href="{{root}}"><span class="zh" lang="zh-Hant-HK">香港</span>HONG KONG</a>
+    <nav class="nav-links" aria-label="Primary">
+      <button class="nav-link" type="button" data-menu aria-expanded="false" aria-controls="panel">Sections <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1 3l4 4 4-4"/></svg></button>
+      <a class="nav-link" href="{{root}}weather/"{{cur_weather}}>Weather</a>
+      <a class="nav-link" href="{{root}}arrivals/"{{cur_arrivals}}>Arrivals</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn nav-cta" href="{{root}}weather/">Right now</a>
+      <button class="nav-link menu-btn" type="button" data-menu aria-expanded="false" aria-controls="panel"><span data-label>Menu</span></button>
+    </div>
+  </div>
+</header>
+<div class="panel" id="panel" data-panel inert>
+  <ul>
+{{panel_items}}
+  </ul>
+</div>

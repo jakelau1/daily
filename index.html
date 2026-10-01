@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en" data-section="home">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://data.weather.gov.hk https://resource.data.one.gov.hk https://rt.data.gov.hk; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Hong Kong, from Happy Valley</title>
+  <meta name="description" content="Weather, hiking trails, live buses, road cameras, day trips, a savings calculator and study videos: one small Hong Kong, seen from Happy Valley.">
+  <!--head-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#081319">
+<link rel="icon" href="./assets/img/icon.svg" type="image/svg+xml">
+<link rel="preload" href="./assets/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./assets/css/fonts.css">
+<link rel="stylesheet" href="./assets/css/site.css">
+<script src="./assets/js/boot.js"></script>
+<!--/head-->
+</head>
+<body>
+<!--nav-->
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-nav>
+  <div class="nav-in">
+    <a class="wordmark" href="./"><span class="zh" lang="zh-Hant-HK">香港</span>HONG KONG</a>
+    <nav class="nav-links" aria-label="Primary">
+      <button class="nav-link" type="button" data-menu aria-expanded="false" aria-controls="panel">Sections <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1 3l4 4 4-4"/></svg></button>
+      <a class="nav-link" href="./weather/">Weather</a>
+      <a class="nav-link" href="./arrivals/">Arrivals</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn nav-cta" href="./weather/">Right now</a>
+      <button class="nav-link menu-btn" type="button" data-menu aria-expanded="false" aria-controls="panel"><span data-label>Menu</span></button>
+    </div>
+  </div>
+</header>
+<div class="panel" id="panel" data-panel inert>
+  <ul>
+    <li><a href="./weather/"><span class="swatch" data-sw="weather" lang="zh-Hant-HK">天</span><span><span class="panel-t">Weather <span class="zh" lang="zh-Hant-HK">天氣</span></span><span class="panel-s">Happy Valley and 26 other places</span></span></a></li>
+    <li><a href="./hiking/"><span class="swatch" data-sw="hiking" lang="zh-Hant-HK">行</span><span><span class="panel-t">Hiking <span class="zh" lang="zh-Hant-HK">行山</span></span><span class="panel-s">Country-park routes on the map</span></span></a></li>
+    <li><a href="./arrivals/"><span class="swatch" data-sw="arrivals" lang="zh-Hant-HK">到</span><span><span class="panel-t">Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></span><span class="panel-s">Live buses and minibuses</span></span></a></li>
+    <li><a href="./cams/"><span class="swatch" data-sw="cams" lang="zh-Hant-HK">路</span><span><span class="panel-t">Roads <span class="zh" lang="zh-Hant-HK">路況</span></span><span class="panel-s">Cameras and harbour-tunnel times</span></span></a></li>
+    <li><a href="./trips/"><span class="swatch" data-sw="trips" lang="zh-Hant-HK">一</span><span><span class="panel-t">Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></span><span class="panel-s">15 days out from Happy Valley</span></span></a></li>
+    <li><a href="./savings/"><span class="swatch" data-sw="savings" lang="zh-Hant-HK">儲</span><span><span class="panel-t">Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></span><span class="panel-s">Compound-interest calculator</span></span></a></li>
+    <li><a href="./study/"><span class="swatch" data-sw="study" lang="zh-Hant-HK">溫</span><span><span class="panel-t">Study <span class="zh" lang="zh-Hant-HK">溫書</span></span><span class="panel-s">PHL245 videos, Units 1–9</span></span></a></li>
+  </ul>
+</div>
+<!--/nav-->
+<main id="main">
+
+<div class="hero-wrap" data-scroll="pin" data-static="0">
+  <section class="hero">
+    <div class="hero-art"><canvas class="art art-drift" data-art="home" aria-hidden="true"></canvas></div>
+    <div class="hero-copy">
+      <h1 class="display" data-split>A small Hong Kong, from Happy Valley.</h1>
+      <a class="btn" data-reveal data-i="6" href="weather/">See it right now <span class="arr" aria-hidden="true">→</span></a>
+      <p class="hero-note" data-reveal data-i="8">Seven corners. One neighbourhood.</p>
+    </div>
+    <div class="hero-cards">
+      <a class="hcard" data-dir="-2" href="weather/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="weather"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">天氣</span>Weather</span></a>
+      <a class="hcard" data-dir="-1" href="hiking/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="hiking"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">行山</span>Hiking</span></a>
+      <a class="hcard is-center" data-dir="0" href="arrivals/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="arrivals"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">到站</span>Arrivals</span></a>
+      <a class="hcard" data-dir="1" href="cams/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="cams"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">路況</span>Roads</span></a>
+      <a class="hcard" data-dir="2" href="trips/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="trips"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">一日遊</span>Day trips</span></a>
+    </div>
+  </section>
+</div>
+
+<section class="stats band band-dark" aria-label="Right now in Happy Valley" data-live-stats>
+  <div class="wrap center">
+    <p class="stats-line" data-reveal>Right now in Happy Valley <span class="mono" data-stats-time></span></p>
+    <div class="stat-row" data-stagger>
+      <div class="glass stat" data-stat="temp">
+        <span class="stat-n"><span class="skeleton skel-h3" aria-hidden="true"></span></span>
+        <span class="stat-l">Temperature</span>
+        <span class="stat-extra"></span>
+      </div>
+      <div class="glass stat" data-stat="tunnel">
+        <span class="stat-n"><span class="skeleton skel-h3" aria-hidden="true"></span></span>
+        <span class="stat-l">Fastest harbour tunnel to Kowloon</span>
+        <span class="stat-extra"></span>
+      </div>
+      <div class="glass stat" data-stat="bus">
+        <span class="stat-n"><span class="skeleton skel-h3" aria-hidden="true"></span></span>
+        <span class="stat-l">Next bus 1</span>
+        <span class="stat-extra"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-light band-pad" id="explore">
+  <div data-carousel role="region" aria-roledescription="carousel" aria-label="Sections">
+    <div class="wrap center">
+      <h2 class="h2" data-split>Explore the corners</h2>
+      <p class="lede" data-reveal>Each one has its own colour, its own data and its own kind of noise.</p>
+      <div class="tabs" data-stagger>
+        <button class="chip" type="button" data-tab>Weather</button>
+        <button class="chip" type="button" data-tab>Hiking</button>
+        <button class="chip" type="button" data-tab>Arrivals</button>
+        <button class="chip" type="button" data-tab>Roads</button>
+        <button class="chip" type="button" data-tab>Day trips</button>
+        <button class="chip" type="button" data-tab>Savings</button>
+        <button class="chip" type="button" data-tab>Study</button>
+      </div>
+    </div>
+    <div class="car" data-viewport data-reveal>
+      <div class="car-track" data-track>
+        <a class="ccard" data-card data-vt href="weather/"><span class="cover"><canvas class="art" data-art="weather" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Weather<span class="zh" lang="zh-Hant-HK">天氣</span></span><span class="ccard-s">Happy Valley and 26 other places, from the Observatory</span></span><span class="arr" aria-hidden="true">→</span></span></a>
+        <a class="ccard" data-card data-vt href="hiking/"><span class="cover"><canvas class="art" data-art="hiking" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Hiking<span class="zh" lang="zh-Hant-HK">行山</span></span><span class="ccard-s">Country-park routes, height profiles, closures and campsites</span></span><span class="arr" aria-hidden="true">→</span></span></a>
+        <a class="ccard" data-card data-vt href="arrivals/"><span class="cover"><canvas class="art" data-art="arrivals" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Arrivals<span class="zh" lang="zh-Hant-HK">到站</span></span><span class="ccard-s">Live buses and minibuses from your stops</span></span><span class="arr" aria-hidden="true">→</span></span></a>
+        <a class="ccard" data-card data-vt href="cams/"><span class="cover"><canvas class="art" data-art="cams" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Roads<span class="zh" lang="zh-Hant-HK">路況</span></span><span class="ccard-s">Traffic cameras and harbour-tunnel journey times</span></span><span class="arr" aria-hidden="true">→</span></span></a>
+        <a class="ccard" data-card data-vt href="trips/"><span class="cover"><canvas class="art" data-art="trips" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Day trips<span class="zh" lang="zh-Hant-HK">一日遊</span></span><span class="ccard-s">Fifteen public-transport days out from Happy Valley</span></span><span class="arr" aria-hidden="true">→</span></span></a>
+        <a class="ccard" data-card data-vt href="savings/"><span class="cover"><canvas class="art" data-art="savings" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Savings<span class="zh" lang="zh-Hant-HK">儲蓄</span></span><span class="ccard-s">A compound-interest calculator with a year-by-year table</span></span><span class="arr" aria-hidden="true">→</span></span></a>
+        <a class="ccard" data-card data-vt href="study/"><span class="cover"><canvas class="art" data-art="study" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Study<span class="zh" lang="zh-Hant-HK">溫書</span></span><span class="ccard-s">105 PHL245 logic videos, Units 1 to 9</span></span><span class="arr" aria-hidden="true">→</span></span></a>
+      </div>
+    </div>
+    <div class="wrap car-ctrl">
+      <button class="icon-btn pause" type="button" data-pause aria-label="Pause autoplay">❚❚</button>
+      <div class="dots">
+        <button class="dot" type="button" data-dot aria-label="Weather"></button><button class="dot" type="button" data-dot aria-label="Hiking"></button><button class="dot" type="button" data-dot aria-label="Arrivals"></button><button class="dot" type="button" data-dot aria-label="Roads"></button><button class="dot" type="button" data-dot aria-label="Day trips"></button><button class="dot" type="button" data-dot aria-label="Savings"></button><button class="dot" type="button" data-dot aria-label="Study"></button>
+      </div>
+      <div class="car-btns">
+        <button class="icon-btn" type="button" data-prev aria-label="Previous">←</button>
+        <button class="icon-btn" type="button" data-next aria-label="Next">→</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap gap-top">
+    <div class="split">
+      <h2 class="h2" data-split>Everything, in one place</h2>
+      <p data-reveal>Seven small tools that used to live on seven different pages, now sharing one home, one look and one set of saved settings.</p>
+    </div>
+    <div class="pgrid" data-stagger>
+      <a class="pcard" data-vt href="weather/"><span class="pcard-art"><canvas class="art" data-art="weather" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Live · Observatory</span><span class="pcard-title" data-vt-title>Weather<span class="zh" lang="zh-Hant-HK">天氣</span></span></span><span class="pcard-foot"><span>Warnings, hourly chart, air quality</span><span class="arr" aria-hidden="true">→</span></span></a>
+      <a class="pcard" data-vt href="hiking/"><span class="pcard-art"><canvas class="art" data-art="hiking" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Map · AFCD</span><span class="pcard-title" data-vt-title>Hiking<span class="zh" lang="zh-Hant-HK">行山</span></span></span><span class="pcard-foot"><span>Routes, climbs, closures</span><span class="arr" aria-hidden="true">→</span></span></a>
+      <a class="pcard" data-vt href="arrivals/"><span class="pcard-art"><canvas class="art" data-art="arrivals" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Live · Bus and minibus</span><span class="pcard-title" data-vt-title>Arrivals<span class="zh" lang="zh-Hant-HK">到站</span></span></span><span class="pcard-foot"><span>Citybus, KMB and minibus times</span><span class="arr" aria-hidden="true">→</span></span></a>
+      <a class="pcard" data-vt href="cams/"><span class="pcard-art"><canvas class="art" data-art="cams" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Live · Transport Dept</span><span class="pcard-title" data-vt-title>Roads<span class="zh" lang="zh-Hant-HK">路況</span></span></span><span class="pcard-foot"><span>Which tunnel is quickest</span><span class="arr" aria-hidden="true">→</span></span></a>
+      <a class="pcard" data-vt href="trips/"><span class="pcard-art"><canvas class="art" data-art="trips" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Guide · 15 days</span><span class="pcard-title" data-vt-title>Day trips<span class="zh" lang="zh-Hant-HK">一日遊</span></span></span><span class="pcard-foot"><span>Steps, timings, what to check</span><span class="arr" aria-hidden="true">→</span></span></a>
+      <a class="pcard" data-vt href="savings/"><span class="pcard-art"><canvas class="art" data-art="savings" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Calculator</span><span class="pcard-title" data-vt-title>Savings<span class="zh" lang="zh-Hant-HK">儲蓄</span></span></span><span class="pcard-foot"><span>Compound interest, in today's money</span><span class="arr" aria-hidden="true">→</span></span></a>
+      <a class="pcard" data-vt href="study/"><span class="pcard-art"><canvas class="art" data-art="study" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Library · 105 videos</span><span class="pcard-title" data-vt-title>Study<span class="zh" lang="zh-Hant-HK">溫書</span></span></span><span class="pcard-foot"><span>Searchable PHL245 catalogue</span><span class="arr" aria-hidden="true">→</span></span></a>
+    </div>
+  </div>
+</section>
+
+<div class="stmt-wrap" data-scroll="pin" data-static="1">
+  <section class="stmt" aria-label="About">
+    <p class="stmt-text" data-words>Rain gauges, harbour tunnels, hill trails, minibuses and one very good tram ride home.</p>
+  </section>
+</div>
+
+<section class="cast band band-dark">
+  <div class="wrap center">
+    <span class="circles" data-stagger aria-hidden="true">
+      <span class="circle" data-sw="weather" lang="zh-Hant-HK">天</span><span class="circle" data-sw="hiking" lang="zh-Hant-HK">行</span><span class="circle" data-sw="arrivals" lang="zh-Hant-HK">到</span><span class="circle" data-sw="cams" lang="zh-Hant-HK">路</span><span class="circle" data-sw="trips" lang="zh-Hant-HK">遊</span><span class="circle" data-sw="savings" lang="zh-Hant-HK">儲</span><span class="circle" data-sw="study" lang="zh-Hant-HK">溫</span>
+    </span>
+    <h2 class="h2" data-split>Seven corners of one neighbourhood</h2>
+    <p class="lede" data-reveal>Built around Happy Valley, useful well beyond it.</p>
+  </div>
+</section>
+
+<section class="band band-dark band-fold" aria-label="Browse">
+  <div class="wrap">
+    <div class="fold-list" data-reveal>
+      <details class="fold" name="sections">
+        <summary>Weather <span class="zh" lang="zh-Hant-HK">天氣</span></summary>
+        <div class="fold-body"><p class="muted fold-p">Current conditions, warnings, the next 24 hours, a nine-day outlook, air quality, tides and earthquakes. Past hours come from a recorder that runs twice an hour.</p><a class="fold-more" href="weather/">Open Weather <span class="arr" aria-hidden="true">→</span></a></div>
+      </details>
+      <details class="fold" name="sections">
+        <summary>Hiking <span class="zh" lang="zh-Hant-HK">行山</span></summary>
+        <div class="fold-body"><p class="muted fold-p">167 country-park routes on the Lands Department map, each with a height profile, estimated climb and time, plus closures, campsites, visitor centres and distance posts.</p><a class="fold-more" href="hiking/">Open Hiking <span class="arr" aria-hidden="true">→</span></a></div>
+      </details>
+      <details class="fold" name="sections">
+        <summary>Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></summary>
+        <div class="fold-body"><p class="muted fold-p">Live Citybus, KMB and green-minibus arrival times for the stops on King Kwong Street and Tsoi Tak Street, with a lookup for any other stop on route 1.</p><a class="fold-more" href="arrivals/">Open Arrivals <span class="arr" aria-hidden="true">→</span></a></div>
+      </details>
+      <details class="fold" name="sections">
+        <summary>Roads <span class="zh" lang="zh-Hant-HK">路況</span></summary>
+        <div class="fold-body"><p class="muted fold-p">Which harbour crossing is quickest right now, from the Transport Department's roadside boards, with the cameras to check for yourself and a window onto the city.</p><a class="fold-more" href="cams/">Open Roads <span class="arr" aria-hidden="true">→</span></a></div>
+      </details>
+      <details class="fold" name="sections">
+        <summary>Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></summary>
+        <div class="fold-body"><p class="muted fold-p">Fifteen public-transport days out from Happy Valley, with step-by-step routes, when to go, and honest "check this" notes where the details may have changed.</p><a class="fold-more" href="trips/">Open Day trips <span class="arr" aria-hidden="true">→</span></a></div>
+      </details>
+      <details class="fold" name="sections">
+        <summary>Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></summary>
+        <div class="fold-body"><p class="muted fold-p">A compound-interest calculator: a monthly contribution that rises each year, a return and an inflation rate in, a balance in today's money and a chart out. It can save the result as an image.</p><a class="fold-more" href="savings/">Open Savings <span class="arr" aria-hidden="true">→</span></a></div>
+      </details>
+      <details class="fold" name="sections">
+        <summary>Study <span class="zh" lang="zh-Hant-HK">溫書</span></summary>
+        <div class="fold-body"><p class="muted fold-p">The PHL245 logic-course videos, Units 1 to 9, searchable by kind and title, with a copy-link button on each.</p><a class="fold-more" href="study/">Open Study <span class="arr" aria-hidden="true">→</span></a></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="cta band band-dark">
+  <canvas class="sphere" data-sphere data-colors="#ff5a4e,#4fe0d0,#ffd166,#7cc4e4,#f2ede3,#e0604a,#5cb89f" aria-hidden="true"></canvas>
+  <div class="cta-in">
+    <p class="cta-serif" data-reveal lang="zh-Hant-HK">香港，一日一日。</p>
+    <h2 class="display" data-split>Start with the sky</h2>
+    <a class="btn" data-reveal data-i="5" href="weather/">Open the weather <span class="arr" aria-hidden="true">→</span></a>
+    <p class="cta-note" data-reveal data-i="6">No account. No tracking. Just Hong Kong.</p>
+  </div>
+</section>
+
+</main>
+<!--footer-->
+<footer class="foot band band-dark">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="wordmark" href="./"><span class="zh" lang="zh-Hant-HK">香港</span>HONG KONG</a>
+        <p>A small Hong Kong, seen from Happy Valley. Weather, trails, buses, roads, days out, a calculator and a few videos.</p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="./weather/">Weather <span class="zh" lang="zh-Hant-HK">天氣</span></a></li>
+          <li><a href="./hiking/">Hiking <span class="zh" lang="zh-Hant-HK">行山</span></a></li>
+          <li><a href="./arrivals/">Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></a></li>
+          <li><a href="./cams/">Roads <span class="zh" lang="zh-Hant-HK">路況</span></a></li>
+          <li><a href="./trips/">Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></a></li>
+          <li><a href="./savings/">Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></a></li>
+          <li><a href="./study/">Study <span class="zh" lang="zh-Hant-HK">溫書</span></a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Sources</h4>
+        <ul>
+          <li><a href="https://www.hko.gov.hk/en/" rel="noopener">Hong Kong Observatory</a></li>
+          <li><a href="https://www.aqhi.gov.hk/en.html" rel="noopener">Air Quality Health Index</a></li>
+          <li><a href="https://data.gov.hk/en/" rel="noopener">DATA.GOV.HK</a></li>
+          <li><a href="https://www.afcd.gov.hk/english/index.html" rel="noopener">AFCD</a></li>
+          <li><a href="https://www.landsd.gov.hk/en/index.html" rel="noopener">Lands Department</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot-legal">Official data is used as published and can be late or wrong; for warnings, closures and emergencies rely on the departments themselves (999 in an emergency). No cookies, no analytics, no third-party scripts or fonts.</p>
+  </div>
+</footer>
+<!--/footer-->
+<script src="assets/js/net.js"></script>
+<script src="assets/js/art.js"></script>
+<script src="assets/js/motion.js"></script>
+<script src="assets/js/chrome.js"></script>
+<script src="assets/js/home.js"></script>
+</body>
+</html>

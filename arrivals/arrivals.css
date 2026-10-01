@@ -1,0 +1,85 @@
+/* Arrivals. Street-name plates and operator colours are kept (they're how Hong Kong signs read); everything else is site glass. */
+.arr-band{padding:clamp(56px,9vw,110px) 0}
+.arr-band .wrap{width:min(760px,100% - 2*var(--gutter))}
+.subhero .wrap{width:min(var(--maxw),100% - 2*var(--gutter))}
+.band-light{--ctb:#b57f00;--kmb:#b50d28;--gmb:#0a6a41;--warn:#8a4a00}
+.band-dark{--ctb:#f2c230;--kmb:#ff5a6e;--gmb:#3fb887}
+:root{--ctb-ink:#14181a;--kmb-ink:#fff;--gmb-ink:#fff}
+#status{font-size:.88rem;color:rgba(255,255,255,.75)}
+#banner:empty{display:none}
+#banner{margin-bottom:22px}
+
+/* stop sections: bilingual street-name plate as the heading */
+section.stop{margin:0 0 clamp(36px,6vw,64px)}
+.plate{max-width:100%;display:inline-flex;flex-direction:column;margin:0;padding:12px 22px 10px;background:rgba(255,255,255,.92);color:#0f1a1f;border-radius:6px;box-shadow:inset 0 0 0 3px rgba(255,255,255,.92),inset 0 0 0 4px #0f1a1f,0 18px 40px -20px rgba(0,0,0,.7)}
+.plate .zh{font-family:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;font-size:clamp(1.6rem,4vw,2.1rem);font-weight:700;letter-spacing:.14em;line-height:1.15}
+.plate .en{font-size:1.08rem;font-weight:600;letter-spacing:.02em;line-height:1.2}
+ul.arows{list-style:none;margin:16px 0 0;padding:6px clamp(14px,2.4vw,24px);border-radius:22px;background:var(--glass);border:1px solid var(--glass-edge);box-shadow:inset 0 1px 0 var(--glass-hi),var(--shadow);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%)}
+.arow{display:grid;grid-template-columns:72px 1fr auto;grid-template-areas:"badge dest times";gap:4px 16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--hair)}
+.arow:last-child{border-bottom:0}
+.rb{grid-area:badge;text-align:center;border-radius:8px;padding:8px 2px 7px;font:700 1.55rem/1 var(--f-mono);letter-spacing:-.05em;position:relative;overflow:hidden}
+.rb small{display:block;margin-top:5px;font:600 .6rem/1.1 var(--f-body);letter-spacing:.03em}
+.op-ctb{background:var(--ctb);color:var(--ctb-ink)}
+.op-kmb{background:var(--kmb);color:var(--kmb-ink)}
+.op-gmb{background:var(--gmb);color:var(--gmb-ink);border-radius:20px}
+.op-joint{background:var(--ink);color:var(--deep);padding-bottom:12px}
+.band-light .op-joint{color:#fff}
+.op-joint::after{content:"";position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--kmb) 0 50%,var(--ctb) 50% 100%)}
+.dest{grid-area:dest;min-width:0}
+.dest .to{display:block;font-weight:600;font-size:1.05rem;line-height:1.2}
+.dest .to-zh{display:block;font-size:.9rem;color:var(--ink-2)}
+.dest .at{display:block;font-size:.8rem;color:var(--ink-2);margin-top:2px}
+.times{grid-area:times;display:flex;gap:16px;align-items:flex-end;list-style:none;margin:0;padding:0}
+.t{text-align:right;min-width:2.4em}
+.t .n{font:500 1.25rem/1 var(--f-mono);letter-spacing:-.05em;font-variant-numeric:tabular-nums}
+.t .u{font-size:.72rem;color:var(--ink-2);margin-left:2px}
+.t.first .n{font-size:2.4rem;font-weight:400;color:var(--tint)}
+.t .clk{display:block;font:400 .7rem var(--f-mono);color:var(--ink-2);font-variant-numeric:tabular-nums;margin-top:4px;white-space:nowrap}
+.t .tag{display:block;font-size:.62rem;font-weight:700;letter-spacing:.03em}
+.t.sched .n{color:var(--ink-2);font-weight:300;opacity:.75}
+.t.sched.first .n{color:var(--ink-2)}
+.t.due .n{font-size:1.4rem}
+.none{grid-area:times;color:var(--ink-2);font-size:.88rem;text-align:right;max-width:13em}
+.arow .warn{grid-column:2 / -1}
+.warn{color:var(--warn);font-size:.84rem;margin:6px 0 0}
+.warn::before{content:"⚠ "}
+.saved .unsave{margin-top:12px}
+@media (max-width:460px){
+  .arow{grid-template-columns:60px 1fr;grid-template-areas:"badge dest" "badge times"}
+  .times,.none{justify-content:flex-start;text-align:left;margin-top:8px}
+  .t{text-align:left}
+  .rb{align-self:start}
+}
+.btn[aria-pressed="true"]{background:var(--tint);color:#06100f;box-shadow:none}
+.band-light .btn[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+/* lookup + picker */
+.dirs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+.lk-route{margin:18px 0 0;font-size:1rem}
+.lk-list{list-style:none;margin:0;padding:0}
+.lk-stop{padding:14px 0;border-bottom:1px solid var(--hair)}
+.lk-name .seq,.picker .seq{color:var(--ink-2);font-family:var(--f-mono);font-size:.85em}
+.lk-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.lk-times{margin-top:8px;font:400 .9rem var(--f-mono);font-variant-numeric:tabular-nums}
+.lk-times .sched{color:var(--ink-2)}
+.picker fieldset{border:0;margin:16px 0 0;padding:0}
+.picker legend{font-weight:700;margin-bottom:6px}
+.picker label{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--hair);cursor:pointer}
+.picker input[type=checkbox]{margin-top:4px;width:18px;height:18px;flex:none;accent-color:var(--tint)}
+.picker small{display:block;color:var(--ink-2)}
+.picker details.all{border-top:0;padding:8px 0 4px}
+.picker details.all summary{cursor:pointer;font-weight:600;font-size:.95rem;color:var(--ink-2)}
+.picker h4{margin:14px 0 2px;font-size:.9rem}
+.picker label.offset{border-bottom:0;align-items:center;flex-wrap:wrap;font-size:.95rem}
+.picker label.offset input{width:5em;height:auto;margin:0;padding:8px 10px;font:inherit;border:1px solid var(--hair);border-radius:10px;background:var(--glass);color:var(--ink)}
+.picker .actions{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.fine{font-size:.88rem;color:var(--ink-2);max-width:62ch;margin-bottom:.7rem}
+.fine a{color:inherit}
+pre.log{white-space:pre-wrap;word-break:break-all;font:400 .75rem var(--f-mono);background:var(--glass);border:1px solid var(--hair);border-radius:12px;padding:12px;max-height:240px;overflow:auto}
+details.fold summary:focus-visible,.picker summary:focus-visible{outline:2px solid var(--tint)}
+#main:focus{outline:none}
+
+@media (prefers-reduced-motion:no-preference){
+  .fresh .t.first .n{animation:blink .5s ease-out 1}
+  @keyframes blink{from{opacity:.25}to{opacity:1}}
+}

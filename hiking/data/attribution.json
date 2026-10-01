@@ -1,0 +1,15 @@
+{
+ "en": [
+  "Hiking trail, distance post, closed trail, campsite and visitor centre data: Agriculture, Fisheries and Conservation Department (AFCD), via the CSDI Portal and DATA.GOV.HK.",
+  "Terrain heights and place names: Lands Department (LandsD), via the CSDI Portal and DATA.GOV.HK.",
+  "Map tiles: Map from Lands Department.",
+  "Intellectual property rights in the data belong to the Government of the Hong Kong SAR."
+ ],
+ "tc": [
+  "遠足徑、標距柱、封閉路徑、營地及遊客中心資料：漁農自然護理署（經空間數據共享平台及資料一線通）。",
+  "地形高度及地方名稱：地政總署（經空間數據共享平台及資料一線通）。",
+  "地圖：地圖由地政總署提供。",
+  "資料的知識產權屬香港特別行政區政府所有。"
+ ],
+ "todo_phase2": "Add HKO weather attribution and disclaimer when weather features are built."
+}

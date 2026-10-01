@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-section="hiking">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--
+  PRIVACY LOCK. This Content-Security-Policy tells the browser to refuse every
+  network request except to these servers:
+    'self'                 - this site: the page's own code, styles, logo and trail data
+    mapapi.geodata.gov.hk  - Lands Department map tiles and place-name labels
+    portal.csdi.gov.hk     - live trail closures (AFCD, via the CSDI Portal)
+  Images may also be 'data:' (built into the page, no request): Leaflet uses one to
+  cancel tile downloads it no longer needs.
+  All code and styles must come from files on this site; code written inside the
+  page itself is refused. No fonts, images, scripts or analytics from anywhere else.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://mapapi.geodata.gov.hk; connect-src 'self' https://portal.csdi.gov.hk; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0a1510">
+<title>Hiking trails · Hong Kong</title>
+<link rel="icon" href="../assets/img/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/css/fonts.css">
+<link rel="stylesheet" href="vendor/leaflet-1.9.4/leaflet.css">
+<link rel="stylesheet" href="hiking.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="../"><span class="zh" lang="zh-Hant-HK">香港</span><span class="brand-en">HONG KONG</span></a>
+  <h1>Hiking <span class="zh" lang="zh-Hant-HK">行山</span></h1>
+  <nav class="top-right" aria-label="Sections">
+    <a class="sect" href="../weather/">Weather</a>
+    <a class="sect" href="../arrivals/">Arrivals</a>
+    <a class="sect" href="../cams/">Roads</a>
+    <a class="sect" href="../trips/">Day trips</a>
+    <a class="sect" href="../study/">Study</a>
+    <a class="about-link" href="#about">About</a>
+    <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="menu-panel">Menu</button>
+  </nav>
+  <div class="menu-panel" id="menu-panel" hidden>
+    <a href="../">Home <span class="zh" lang="zh-Hant-HK">香港</span></a>
+    <a href="../weather/">Weather <span class="zh" lang="zh-Hant-HK">天氣</span></a>
+    <a href="./" aria-current="page">Hiking <span class="zh" lang="zh-Hant-HK">行山</span></a>
+    <a href="../arrivals/">Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></a>
+    <a href="../cams/">Roads <span class="zh" lang="zh-Hant-HK">路況</span></a>
+    <a href="../trips/">Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></a>
+    <a href="../savings/">Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></a>
+    <a href="../study/">Study <span class="zh" lang="zh-Hant-HK">溫書</span></a>
+    <a href="#about">About this map</a>
+  </div>
+</header>
+
+<main class="layout">
+  <div id="map" class="map" role="region" aria-label="Map of hiking trails"></div>
+  <div class="status" id="status" role="status">Loading trails…</div>
+  <div class="map-hint" id="map-hint" role="status" hidden>Zoom in to see distance posts</div>
+  <aside class="panel" id="panel" data-size="peek" aria-label="Routes">
+    <button class="handle" id="handle" type="button" aria-controls="panel-body" aria-label="Show more of the route panel"></button>
+    <div class="panel-body" id="panel-body"></div>
+  </aside>
+</main>
+
+<script src="js/menu.js"></script>
+<script src="js/leaflet-options.js"></script>
+<script src="vendor/leaflet-1.9.4/leaflet.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

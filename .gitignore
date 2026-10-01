@@ -1,0 +1,7 @@
+# Never commit these (privacy rules)
+private/
+.env
+.env.*
+# Unencrypted build output stays on this computer only
+build/
+node_modules/

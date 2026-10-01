@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-section="cams">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://tdcctv.data.one.gov.hk; connect-src 'self' https://resource.data.one.gov.hk; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Roads 路況 · Hong Kong</title>
+  <meta name="description" content="Which harbour tunnel is quickest right now, with Transport Department cameras at both ends of each crossing.">
+  <!--head-->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#081319">
+<link rel="icon" href="../assets/img/icon.svg" type="image/svg+xml">
+<link rel="preload" href="../assets/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../assets/css/fonts.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script src="../assets/js/boot.js"></script>
+<!--/head-->
+  <link rel="stylesheet" href="cams.css">
+</head>
+<body>
+<!--nav-->
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-nav>
+  <div class="nav-in">
+    <a class="wordmark" href="../"><span class="zh" lang="zh-Hant-HK">香港</span>HONG KONG</a>
+    <nav class="nav-links" aria-label="Primary">
+      <button class="nav-link" type="button" data-menu aria-expanded="false" aria-controls="panel">Sections <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M1 3l4 4 4-4"/></svg></button>
+      <a class="nav-link" href="../weather/">Weather</a>
+      <a class="nav-link" href="../arrivals/">Arrivals</a>
+    </nav>
+    <div class="nav-right">
+      <a class="btn nav-cta" href="../weather/">Right now</a>
+      <button class="nav-link menu-btn" type="button" data-menu aria-expanded="false" aria-controls="panel"><span data-label>Menu</span></button>
+    </div>
+  </div>
+</header>
+<div class="panel" id="panel" data-panel inert>
+  <ul>
+    <li><a href="../weather/"><span class="swatch" data-sw="weather" lang="zh-Hant-HK">天</span><span><span class="panel-t">Weather <span class="zh" lang="zh-Hant-HK">天氣</span></span><span class="panel-s">Happy Valley and 26 other places</span></span></a></li>
+    <li><a href="../hiking/"><span class="swatch" data-sw="hiking" lang="zh-Hant-HK">行</span><span><span class="panel-t">Hiking <span class="zh" lang="zh-Hant-HK">行山</span></span><span class="panel-s">Country-park routes on the map</span></span></a></li>
+    <li><a href="../arrivals/"><span class="swatch" data-sw="arrivals" lang="zh-Hant-HK">到</span><span><span class="panel-t">Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></span><span class="panel-s">Live buses and minibuses</span></span></a></li>
+    <li><a href="../cams/" aria-current="page"><span class="swatch" data-sw="cams" lang="zh-Hant-HK">路</span><span><span class="panel-t">Roads <span class="zh" lang="zh-Hant-HK">路況</span></span><span class="panel-s">Cameras and harbour-tunnel times</span></span></a></li>
+    <li><a href="../trips/"><span class="swatch" data-sw="trips" lang="zh-Hant-HK">一</span><span><span class="panel-t">Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></span><span class="panel-s">15 days out from Happy Valley</span></span></a></li>
+    <li><a href="../savings/"><span class="swatch" data-sw="savings" lang="zh-Hant-HK">儲</span><span><span class="panel-t">Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></span><span class="panel-s">Compound-interest calculator</span></span></a></li>
+    <li><a href="../study/"><span class="swatch" data-sw="study" lang="zh-Hant-HK">溫</span><span><span class="panel-t">Study <span class="zh" lang="zh-Hant-HK">溫書</span></span><span class="panel-s">PHL245 videos, Units 1–9</span></span></a></li>
+  </ul>
+</div>
+<!--/nav-->
+<main id="main">
+<header class="subhero band band-dark" data-scroll="out">
+  <div class="subhero-art"><canvas class="art" data-art="cams" aria-hidden="true"></canvas></div>
+  <div class="wrap">
+    <p class="eyebrow" data-reveal>Live · 2 minute refresh</p>
+    <h1 class="display" data-split>Roads</h1>
+    <p class="lede" data-reveal data-i="3"><span class="zh" lang="zh-Hant-HK">路況</span> · Which harbour crossing to take, and cameras to check for yourself.</p>
+    <div class="sect-bar" data-reveal data-i="4">
+      <button class="btn" id="refresh" type="button">Refresh now</button>
+      <span class="status" id="status" aria-live="polite">Loading…</span>
+    </div>
+    <div class="cycle" aria-hidden="true"><span id="cycle"></span></div>
+  </div>
+</header>
+
+<section class="band band-dark cams-band" id="traffic" aria-labelledby="traffic-h">
+  <div class="wrap">
+    <p class="eyebrow" data-reveal>Traffic check</p>
+    <h2 class="h2" id="traffic-h" data-split>Which tunnel?</h2>
+    <p class="lede" data-reveal>Journey times first, then cameras at both ends of each tunnel, listed west to east. Tap a camera to see it larger.</p>
+    <div class="jt glass glass-pad" id="jt" aria-live="polite">
+      <h3 class="jt-h">To Kowloon</h3>
+      <div id="jt-kln"><div class="skeleton skel-h3" aria-hidden="true"></div></div>
+      <h3 class="jt-h">To the Island</h3>
+      <label class="field jt-pick">From
+        <select id="jt-from"></select>
+      </label>
+      <div id="jt-hk"><div class="skeleton skel-h3" aria-hidden="true"></div></div>
+      <p class="jt-note" id="jt-note"></p>
+    </div>
+    <div id="traffic-groups"></div>
+  </div>
+</section>
+
+<section class="band band-light cams-band" id="window" aria-labelledby="window-h">
+  <div class="wrap">
+    <p class="eyebrow" data-reveal>Further afield</p>
+    <h2 class="h2" id="window-h" data-split>Window into the city</h2>
+    <p class="lede" data-reveal>Bridges and roads across Hong Kong. Swipe sideways, tap to enlarge.</p>
+  </div>
+  <div class="strip" id="window-strip"></div>
+  <div class="wrap">
+    <p class="cams-foot muted small">Images from the Transport Department via DATA.GOV.HK. Each camera updates about every two minutes, and this page fetches fresh copies on the same cycle.</p>
+  </div>
+</section>
+</main>
+
+<dialog id="zoom" aria-labelledby="zoom-title">
+  <img id="zoom-img" alt="">
+  <div class="zbar">
+    <div><strong id="zoom-title"></strong><br><small id="zoom-dir"></small></div>
+    <button class="btn btn-ghost btn-sm" type="button" id="zoom-close">Close</button>
+  </div>
+</dialog>
+<!--footer-->
+<footer class="foot band band-dark">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="wordmark" href="../"><span class="zh" lang="zh-Hant-HK">香港</span>HONG KONG</a>
+        <p>A small Hong Kong, seen from Happy Valley. Weather, trails, buses, roads, days out, a calculator and a few videos.</p>
+      </div>
+      <div>
+        <h4>Sections</h4>
+        <ul>
+          <li><a href="../weather/">Weather <span class="zh" lang="zh-Hant-HK">天氣</span></a></li>
+          <li><a href="../hiking/">Hiking <span class="zh" lang="zh-Hant-HK">行山</span></a></li>
+          <li><a href="../arrivals/">Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></a></li>
+          <li><a href="../cams/">Roads <span class="zh" lang="zh-Hant-HK">路況</span></a></li>
+          <li><a href="../trips/">Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></a></li>
+          <li><a href="../savings/">Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></a></li>
+          <li><a href="../study/">Study <span class="zh" lang="zh-Hant-HK">溫書</span></a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Sources</h4>
+        <ul>
+          <li><a href="https://www.hko.gov.hk/en/" rel="noopener">Hong Kong Observatory</a></li>
+          <li><a href="https://www.aqhi.gov.hk/en.html" rel="noopener">Air Quality Health Index</a></li>
+          <li><a href="https://data.gov.hk/en/" rel="noopener">DATA.GOV.HK</a></li>
+          <li><a href="https://www.afcd.gov.hk/english/index.html" rel="noopener">AFCD</a></li>
+          <li><a href="https://www.landsd.gov.hk/en/index.html" rel="noopener">Lands Department</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="foot-legal">Official data is used as published and can be late or wrong; for warnings, closures and emergencies rely on the departments themselves (999 in an emergency). No cookies, no analytics, no third-party scripts or fonts.</p>
+  </div>
+</footer>
+<!--/footer-->
+<script src="../assets/js/net.js"></script>
+<script src="../assets/js/art.js"></script>
+<script src="../assets/js/motion.js"></script>
+<script src="../assets/js/chrome.js"></script>
+<script src="cams.js"></script>
+</body>
+</html>

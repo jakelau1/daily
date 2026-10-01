@@ -1,0 +1,145 @@
+{
+ "generated_at": "2026-09-28T12:00:17+00:00",
+ "files": {
+  "trails.geojson": {
+   "records": 167,
+   "bytes": 498225,
+   "sources": [
+    {
+     "dataset": "hiking_trails",
+     "name_en": "Hiking Trails in Country Parks",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T11:59:50+00:00"
+    },
+    {
+     "dataset": "distance_posts",
+     "name_en": "Distance Posts of Hiking Trails and Mountain Bike Trails",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T11:59:53+00:00"
+    },
+    {
+     "dataset": "place_names",
+     "name_en": "Place Name",
+     "provider": "LandsD",
+     "downloaded_at": "2026-09-28T12:00:07+00:00"
+    },
+    {
+     "dataset": "place_name_table",
+     "name_en": "Place Name",
+     "provider": "LandsD",
+     "downloaded_at": "2026-09-28T12:00:09+00:00"
+    }
+   ]
+  },
+  "route_stats.json": {
+   "records": 167,
+   "bytes": 228464,
+   "sources": [
+    {
+     "dataset": "hiking_trails",
+     "name_en": "Hiking Trails in Country Parks",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T11:59:50+00:00"
+    },
+    {
+     "dataset": "dtm",
+     "name_en": "Digital Terrain Model (DTM)",
+     "provider": "LandsD",
+     "downloaded_at": "2026-09-28T09:28:11+00:00"
+    },
+    {
+     "dataset": "distance_posts",
+     "name_en": "Distance Posts of Hiking Trails and Mountain Bike Trails",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T11:59:53+00:00"
+    },
+    {
+     "dataset": "place_names",
+     "name_en": "Place Name",
+     "provider": "LandsD",
+     "downloaded_at": "2026-09-28T12:00:07+00:00"
+    },
+    {
+     "dataset": "place_name_table",
+     "name_en": "Place Name",
+     "provider": "LandsD",
+     "downloaded_at": "2026-09-28T12:00:09+00:00"
+    }
+   ]
+  },
+  "distance_posts.geojson": {
+   "records": 1078,
+   "bytes": 442830,
+   "sources": [
+    {
+     "dataset": "distance_posts",
+     "name_en": "Distance Posts of Hiking Trails and Mountain Bike Trails",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T11:59:53+00:00"
+    }
+   ]
+  },
+  "closed_trails.geojson": {
+   "records": 7,
+   "bytes": 10432,
+   "sources": [
+    {
+     "dataset": "closed_trails",
+     "name_en": "Closed Trails in Country Parks",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T11:59:55+00:00"
+    }
+   ]
+  },
+  "campsites.geojson": {
+   "records": 41,
+   "bytes": 17278,
+   "sources": [
+    {
+     "dataset": "campsites",
+     "name_en": "Location of campsites in country parks",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T11:59:58+00:00"
+    }
+   ]
+  },
+  "visitor_centres.geojson": {
+   "records": 8,
+   "bytes": 5161,
+   "sources": [
+    {
+     "dataset": "visitor_centres",
+     "name_en": "Country Park Visitor Centres",
+     "provider": "AFCD",
+     "downloaded_at": "2026-09-28T12:00:03+00:00"
+    }
+   ]
+  },
+  "attribution.json": {
+   "bytes": 900
+  }
+ },
+ "checks": {
+  "it7_typo_present": true,
+  "fau_lau_typo_present": true,
+  "it7_posts_corrected": [
+   "L063",
+   "L064"
+  ],
+  "unmatched_post_trail_ids_expected_mtb": [
+   "mb_11",
+   "mb_17a",
+   "mb_17b",
+   "mb_18",
+   "mb_2a",
+   "mb_2b",
+   "mb_2c",
+   "mb_2d",
+   "mb_8",
+   "mb_8a"
+  ],
+  "unmatched_post_trail_ids_NEW": [],
+  "climb_consistency_limit_m": 10.0,
+  "climb_consistency_exceptions": []
+ }
+}
