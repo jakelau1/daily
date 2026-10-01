@@ -40,7 +40,7 @@ const data = extract();
 const problems = check(data);
 if (problems.length) stop('the schedule has problems:\n  ' + problems.join('\n  '));
 const payload = JSON.stringify(data);
-fs.rmSync(r('build'), { recursive: true, force: true });
+for (const d of ['payload', 'encrypted', 'decrypted', 'current', 'current-decrypted']) fs.rmSync(r('build/' + d), { recursive: true, force: true }); // not screenshots/
 fs.mkdirSync(r('build/payload'), { recursive: true });
 fs.writeFileSync(r('build/payload/index.html'), payload); // StatiCrypt only encrypts .html files; the content is JSON
 
