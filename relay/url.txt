@@ -1,0 +1,1 @@
+https://daily-weather-relay.cloudfare-hard-worker.workers.dev
