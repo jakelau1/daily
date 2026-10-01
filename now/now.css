@@ -80,6 +80,7 @@ p, h1 { margin: 0; }
 .wx-problem { color: var(--warn); font-size: .8em; }
 /* A weather reading that is too old (wx.js decides) is greyed, whatever the animation says. */
 .old, .live.old { opacity: .28 !important; }
+.leave { font-size: calc(6.2vh * var(--fit)); margin-top: 2.2vh; color: hsl(32 90% 66%); font-weight: 650; line-height: 1.2; }
 .prompt { font-size: calc(6.2vh * var(--fit)); margin-top: 2.2vh; color: var(--warn); font-weight: 600; line-height: 1.2; }
 
 /* ---------- typhoon signal or rainstorm warning: takes over the screen ---------- */
@@ -135,7 +136,14 @@ p, h1 { margin: 0; }
 .plan-when { color: var(--dim); min-width: 7.5em; }
 .plan-what { font-weight: 600; }
 .plan-floor { flex-basis: 100%; color: var(--dim); font-size: .85em; }
-.plan-empty { color: var(--dim); }
+.plan-empty, .plan-note { color: var(--dim); }
+.plan-note { font-size: .85em; margin: 0; }
+.plan-msg { color: var(--warn); margin: 0; }
+.plan-msg:empty { display: none; }
+.plan-travel { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: .45em; }
+.plan-label { color: var(--dim); }
+.plan .plan-num { flex: 0 0 4.2em; }
+.plan .plan-add { align-self: flex-start; color: var(--dim); }
 .chips { display: flex; flex-wrap: wrap; gap: .45em; }
 .plan .chip.on { border-color: hsl(150 50% 45%); background: hsl(150 40% 14%); }
 .chips.forgetting .chip { border-color: var(--warn); color: var(--warn); }
@@ -167,7 +175,7 @@ p, h1 { margin: 0; }
   .next { font-size: calc(5.2vw * var(--fit)); }
   .banner, .wake { font-size: 4vw; }
   .wx { font-size: 5vw; }
-  .prompt { font-size: calc(5.6vw * var(--fit)); }
+  .prompt, .leave { font-size: calc(5.6vw * var(--fit)); }
   .alert-title { font-size: 11vw; }
   .alert-from, .alert-hint { font-size: 4vw; }
   .alert-issued, .alert-strip { font-size: 5.4vw; }

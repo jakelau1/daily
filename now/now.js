@@ -135,6 +135,28 @@
     return '';
   }
 
+  // ---------- leave-by countdown (travel saved at Planning, see plan.js) ----------
+  var LEAVE_LEAD = 60;      // minutes: the countdown starts an hour before it's time to leave
+  // The next block today that needs travel, once it's within an hour of leaving: { b, travel, leave } or null.
+  function leaving(t) {
+    if (!window.NowPlan) return null;
+    var now = t.min + t.sec / 60;
+    for (var i = 0; i < blocks.length; i++) {
+      var b = blocks[i].b;
+      if (b.day !== t.day || b.start <= now) continue;
+      var travel = window.NowPlan.travelFor(b);
+      if (!travel) continue;
+      var leave = window.NowPlan.leaveBy(b, travel);
+      return now >= leave - LEAVE_LEAD ? { b: b, travel: travel, leave: leave, now: now } : null;
+    }
+    return null;
+  }
+  // Arrival times are estimates from typical travel times, and always say so.
+  function arrivalIfLeavingNow(L) {
+    var at = Math.round(L.now + L.travel.min), late = at - L.b.start;   // nearest minute: it is an estimate
+    return 'leaving now, you’d arrive about ' + fmtTime(at) + (late > 0 ? ', ' + fmtDur(late) + ' late' : '') + ' (estimate)';
+  }
+
   // What the screen should say at a given moment.
   function model(t) {
     var w = t.week, cur = null;
@@ -168,6 +190,32 @@
       m.next = 'Then ' + nameOf(n.b) + (nf ? ' · floor: ' + nf : '');
     }
     m.prompt = promptText(t);
+    var L = leaving(t);
+    m.leave = '';
+    if (L && !cur) {
+      // free time before a trip: the countdown takes the main place
+      m.cat = 'leave';
+      if (L.now < L.leave) {
+        m.kicker = 'Get ready to leave';
+        m.label = 'Leave by ' + fmtTime(L.leave);
+        m.left = fmtDur(Math.ceil(L.leave - L.now)) + ' until you leave';
+        m.sub = 'For ' + nameOf(L.b) + ' at ' + fmtTime(L.b.start) + ' · arrive about ' + fmtTime(L.b.start - (L.travel.spare || 0)) + ' (estimate)';
+        var from = Math.max(L.leave - LEAVE_LEAD, prevEnd(t.week) - t.day * DAY);
+        m.progress = (L.now - from) / (L.leave - from);
+      } else {
+        m.kicker = 'Time to leave · due ' + fmtTime(L.leave);
+        m.label = 'Leave now';
+        m.left = 'Starts in ' + fmtDur(Math.ceil(L.b.start - L.now));
+        m.sub = 'For ' + nameOf(L.b) + ' at ' + fmtTime(L.b.start) + ' · ' + arrivalIfLeavingNow(L);
+        m.progress = 1;
+      }
+      m.floor = L.travel.route ? 'Route: ' + L.travel.route : '';
+    } else if (L) {
+      // during another block: one line underneath
+      m.leave = L.now < L.leave
+        ? 'Leave by ' + fmtTime(L.leave) + ' for ' + nameOf(L.b) + ' · in ' + fmtDur(Math.ceil(L.leave - L.now))
+        : 'Leave now for ' + nameOf(L.b) + ' (due ' + fmtTime(L.leave) + ') · ' + arrivalIfLeavingNow(L);
+    }
     m.night = night.from > night.to ? (t.min >= night.from || t.min < night.to) : (t.min >= night.from && t.min < night.to);
     return m;
   }
@@ -207,11 +255,11 @@
     if (!blocks.length) { set('label', 'No blocks in the schedule'); return t; }
     var m = model(t);
     current = m.block;
-    var before = shown.label + shown.sub + shown.floor + shown.next + shown.prompt + shown.left.length;
-    ['kicker', 'label', 'sub', 'left', 'prompt', 'floor', 'next'].forEach(function (k) { set(k, m[k]); });
+    var before = shown.label + shown.sub + shown.floor + shown.next + shown.prompt + shown.leave + shown.left.length;
+    ['kicker', 'label', 'sub', 'left', 'leave', 'prompt', 'floor', 'next'].forEach(function (k) { set(k, m[k]); });
     // Refit when the words change or the screen size does (rotation, keyboard), without relying on resize events.
     var size = innerWidth + 'x' + innerHeight;
-    if (shown.label + shown.sub + shown.floor + shown.next + shown.prompt + shown.left.length !== before || size !== shown.size) {
+    if (shown.label + shown.sub + shown.floor + shown.next + shown.prompt + shown.leave + shown.left.length !== before || size !== shown.size) {
       shown.size = size;
       fit();
     }
@@ -220,7 +268,7 @@
     el.bar.style.setProperty('--p', Math.max(0, Math.min(1, m.progress)).toFixed(4));
     if (shown.cat !== m.cat) {
       shown.cat = m.cat;
-      root.style.setProperty('--hue', m.cat === 'free' ? 210 : hueOf(m.cat));
+      root.style.setProperty('--hue', m.cat === 'free' ? 210 : m.cat === 'leave' ? 32 : hueOf(m.cat));
       root.classList.toggle('is-free', m.cat === 'free');
     }
     root.classList.toggle('night', m.night);
@@ -334,7 +382,7 @@
   }
 
   function start(data) {
-    ['clock', 'date', 'kicker', 'label', 'sub', 'left', 'prompt', 'floor', 'next', 'bar', 'banner', 'wake', 'alert'].forEach(function (id) { el[id] = $(id); });
+    ['clock', 'date', 'kicker', 'label', 'sub', 'left', 'leave', 'prompt', 'floor', 'next', 'bar', 'banner', 'wake', 'alert'].forEach(function (id) { el[id] = $(id); });
     el.wxTemp = $('wx-temp'); el.wxAir = $('wx-air'); el.wxProblem = $('wx-problem');
     el.alertTitles = $('alert-titles'); el.alertIssued = $('alert-issued'); el.alertClock = $('alert-clock'); el.alertNow = $('alert-now');
     el.alert.addEventListener('click', function () { alertHiddenUntil = Date.now() + 10 * 60e3; render(new Date()); });

@@ -508,6 +508,96 @@ console.log('Weather prompts and warnings');
   await ctx3.close();
 }
 
+// ---------- 5d. travel and the leave-by countdown (stage 4) ----------
+console.log('Travel and leave-by');
+{
+  const check = (ok, msg) => { checks++; if (!ok) fail(msg); };
+  const text = (p, sel) => p.locator(sel).textContent();
+  Object.assign(WX, { warn: {}, raining: false, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low', fail: false, airAgeMin: 30, nowcast: { ageMin: 5, mm: [0, 0, 0, 0] } });
+  const ctx4 = await newContext();
+  // A day with a chosen block and a fixed afternoon block after a gap (found from the data, not named here).
+  const D = [0, 1, 2, 3, 4, 5, 6].find(d => DATA.blocks.some(b => b.open && b.day === d && b.start >= 17 * 60) &&
+    DATA.blocks.some(b => !b.open && !b.planning && b.day === d && b.start >= 12 * 60 && b.start < 15 * 60 &&
+      !DATA.blocks.some(x => x.day === d && x.end > b.start - 75 && x.end <= b.start && x !== b)));
+  const fixed = DATA.blocks.filter(b => b.day === D && !b.open && !b.planning && b.start >= 12 * 60).sort((a, b) => a.start - b.start)[0];
+  const chosen = DATA.blocks.filter(b => b.day === D && b.open && b.start >= 17 * 60)[0];
+  const plan = DATA.blocks.find(b => b.planning && b.day === D);
+  const leave = fixed.start - 57;                         // 47 min travel + 10 spare
+  page = await newPage(ctx4, at(D, plan.start - 2));
+  await unlock(page);
+  await page.locator('#app').waitFor({ timeout: 30000 });
+  await goTo(page, D, plan.start, 5);
+  check(await page.locator('#plan').isVisible(), 'picker did not open at Planning');
+  await page.click('.plan-add');
+  await page.locator('.plan-row', { hasText: fixed.label }).click();
+  await page.fill('#plan-travel-min', '47');
+  await page.fill('#plan-travel-spare', '10');
+  await page.fill('#plan-travel-route', 'Walk 10 · MTR 25 · walk 12');
+  await page.screenshot({ path: `${SHOTS}/23-plan-travel.png` });
+  await page.click('.plan-save');
+  check((await text(page, '#plan-body')).includes(`leave by ${fmtT(leave)} (47 min travel + 10 spare)`), 'travel not shown in the Planning list');
+  await page.locator('.plan-row', { hasText: fixed.label }).click();
+  check(await page.inputValue('#plan-travel-min') === '47', 'saved travel not filled in when editing');
+  await page.fill('#plan-travel-min', 'about an hour');
+  await page.click('.plan-save');
+  check(/whole minutes/.test(await text(page, '.plan-msg')), 'no message for travel that is not a number');
+  await page.locator('.plan-btn', { hasText: 'Back' }).click();
+  await page.locator('.plan-row', { hasText: chosen.label }).click();
+  await page.fill('#plan-what', 'Test hike');
+  await page.fill('#plan-travel-min', '30');
+  await page.click('.plan-save');
+  check((await text(page, '#plan-body')).includes(`leave by ${fmtT(chosen.start - 30)}`), 'a choice’s travel not shown');
+  await page.screenshot({ path: `${SHOTS}/24-plan-with-travel.png` });
+  await page.click('#plan-done');
+
+  // During the block before: one line. In the gap: the countdown. After leave-by: leave now, with an estimate.
+  let s = await goTo(page, D, leave - 70);
+  check(!(await page.locator('#leave').isVisible()), 'countdown started more than an hour early');
+  s = await goTo(page, D, leave - 48);
+  const prev = DATA.blocks.find(b => b.day === D && b.start <= leave - 48 && leave - 48 < b.end);
+  if (prev) check(await text(page, '#leave') === `Leave by ${fmtT(leave)} for ${fixed.label} · in 48 min`, `line during the block before: "${await page.locator('#leave').textContent()}"`);
+  s = await goTo(page, D, leave - 13);
+  check(s.label === `Leave by ${fmtT(leave)}` && s.left === '13 min until you leave', `countdown: "${s.label}" / "${s.left}"`);
+  check((await text(page, '#sub')) === `For ${fixed.label} at ${fmtT(fixed.start)} · arrive about ${fmtT(fixed.start - 10)} (estimate)`, `arrival line: "${await text(page, '#sub')}"`);
+  check(s.floor === 'Route: Walk 10 · MTR 25 · walk 12', 'route not shown');
+  check(!s.over.length, 'countdown overflows');
+  await page.screenshot({ path: `${SHOTS}/25-leave-by.png` });
+  s = await goTo(page, D, leave + 7);
+  check(s.label === 'Leave now' && s.left === 'Starts in 50 min' && s.kicker === `Time to leave · due ${fmtT(leave)}`, `leave now: "${s.kicker}" / "${s.label}" / "${s.left}"`);
+  check((await text(page, '#sub')).startsWith(`For ${fixed.label} at ${fmtT(fixed.start)} · `), 'leave now should name the block');
+  check((await text(page, '#sub')).includes(`leaving now, you’d arrive about ${fmtT(leave + 7 + 47)} (estimate)`), `estimate when late to leave: "${await text(page, '#sub')}"`);
+  await page.screenshot({ path: `${SHOTS}/26-leave-now.png` });
+  s = await goTo(page, D, fixed.start - 5);
+  check((await text(page, '#sub')).includes('42 min late (estimate)'), `late estimate: "${await text(page, '#sub')}"`);
+  await page.setViewportSize({ width: 640, height: 360 });
+  s = await goTo(page, D, fixed.start - 4);
+  check(!s.over.length, 'leave-now text overflows the small screen');
+  await page.setViewportSize({ width: 800, height: 360 });
+  s = await goTo(page, D, fixed.start + 5);
+  check(s.label === fixed.label && !(await page.locator('#leave').isVisible()), 'countdown should stop once the block starts');
+  s = await goTo(page, D, chosen.start - 40);
+  check(s.label === `Leave by ${fmtT(chosen.start - 30)}` && (await text(page, '#sub')).includes(`${chosen.label}: Test hike`), `countdown for a choice: "${s.label}"`);
+  if (page.problems.length) fail('travel: ' + page.problems.join(' | '));
+  await page.close();
+
+  // A week later: the fixed block's travel repeats; the choice's doesn't (picks clear daily) but is offered again.
+  page = await newPage(ctx4, at(D + 7, plan.start - 2));
+  await page.locator('#app').waitFor({ timeout: 30000 });
+  await goTo(page, D + 7, plan.start, 5);
+  check((await text(page, '#plan-body')).includes(`leave by ${fmtT(leave)}`), 'weekly travel did not repeat the next week');
+  await page.locator('.plan-row', { hasText: chosen.label }).click();
+  check(await page.locator('.chip', { hasText: 'Test hike · 30 min away' }).count() === 1, 'saved choice lost its travel');
+  await page.locator('.plan-btn', { hasText: 'Back' }).click();
+  await page.locator('.plan-row', { hasText: fixed.label }).click();
+  await page.locator('.plan-btn', { hasText: 'Remove travel' }).click();
+  check(!(await text(page, '#plan-body')).includes('leave by'), 'travel not removed');
+  await page.click('#plan-done');
+  s = await goTo(page, D + 7, leave - 13);
+  check(/^Free until/.test(s.label), `after removing travel: "${s.label}"`);
+  await page.close();
+  await ctx4.close();
+}
+
 // ---------- 6. screenshots of typical moments (landscape 800×360, and portrait) ----------
 console.log('Screenshots');
 const shots = [];

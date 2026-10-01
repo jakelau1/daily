@@ -105,6 +105,14 @@ removes them). Today's picks clear at 4am. After Planning, tapping the display r
 after 2 untouched minutes. Picks and saved choices stay on the phone only (browser storage), so they never reach
 GitHub, and are lost only if that browser's site data is cleared.
 
+**Travel and "leave by"** (`now/plan.js`, `now/now.js`): at Planning, "Add travel to another block" (or the travel
+fields when choosing a Pastime or Movement) takes typical door-to-door minutes, spare minutes and an optional route
+note. Travel for a fixed block repeats every week until changed or removed; travel typed with a choice is remembered
+with that choice. From an hour before it's time to leave (start − travel − spare), the display counts down: as a line
+under the current block, or as the main display in free time ("Leave by 12:18pm", the route, and "arrive about …
+(estimate)"). After that time it says "Leave now" with the estimated arrival if you left then. Only leaving is counted
+down, not coming home. All of this is saved in the phone's browser only.
+
 **Weather** (`now/wx.js`), from the same sources and "Happy Valley" setting as the Weather page:
 - *Rain before the dog walk*: from an hour before, "Showers forecast around 10am" (the Observatory's hourly weather
   forecast) or "Raining in Wan Chai now" (its rain gauges).
