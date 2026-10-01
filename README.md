@@ -95,6 +95,14 @@ How it fits together:
   `node tools/check-private.mjs --install`) and stops a commit that includes `private/`, `build/`, `.env` or readable
   schedule text.
 
+**Planning picker** (`now/plan.js`): during the daily Planning block, the screen lists today's blocks that are chosen
+at Planning (the extraction marks them; Pastimes and Movement blocks whose note says they're picked at planning).
+Tap one, type today's choice and its floor (optional), and it shows on the display during that block. Anything typed
+is remembered in that browser with its floor and offered as a one-tap button next time ("Remove saved choices"
+removes them). Today's picks clear at 4am. After Planning, tapping the display reopens the picker to swap; it closes
+after 2 untouched minutes. Picks and saved choices stay on the phone only (browser storage), so they never reach
+GitHub, and are lost only if that browser's site data is cleared.
+
 On the phone: shifts the layout a little every 3 minutes and dims at night (from bedtime until half an hour before
 the morning routine) to reduce burn-in; asks the browser to keep the screen on; reloads once a day at 4am, but only
 when the site can be reached; greys out a number that hasn't been updated for 2½ minutes; and shows a banner

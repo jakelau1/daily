@@ -18,6 +18,7 @@
   var root = document.documentElement;
   var el = {};
   var blocks = [], routines = [], cats = {}, night = { from: 23 * 60, to: 7 * 60 };
+  var current = null;                   // the block on screen now (null between blocks)
   var shown = {}, lastMinute = null, lastTick = 0, loadedDay = null, offlineSince = null, wakeLock = null, shiftStep = 0, reloadTry = 0;
 
   // ---------- time ----------
@@ -91,6 +92,9 @@
     return null;
   }
   function floorOf(b) { return cats[b.cat] && cats[b.cat].floor; }
+  // Today's choice for a block chosen at Planning (see plan.js), or null.
+  function pickOf(b) { return b.open && window.NowPlan ? window.NowPlan.pickFor(b.id) : null; }
+  function nameOf(b) { var p = pickOf(b); return p ? b.label + ': ' + p.what : b.label; }
   function hueOf(key) {
     var h = 0;
     for (var i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
@@ -106,16 +110,20 @@
       var nx = nextFrom(cur.e), step = stepAt(cur, t.min);
       m.cat = cur.b.cat;
       m.kicker = 'Now · until ' + fmtTime(cur.b.end);
-      m.label = cur.b.label;
-      m.sub = step ? step.step.title + ' · until ' + fmtTime(step.end) + (step.step.approx ? ' or so' : '') : cur.b.note;
+      var pk = pickOf(cur.b);
+      m.block = cur.b;
+      m.label = pk ? pk.what : cur.b.label;
+      m.sub = step ? step.step.title + ' · until ' + fmtTime(step.end) + (step.step.approx ? ' or so' : '') :
+        pk ? cur.b.label : cur.b.open ? 'Not picked yet · tap to choose' : cur.b.note;
       m.left = fmtDur(Math.ceil(cur.e - w)) + ' left';
       m.progress = (w - cur.s) / (cur.e - cur.s);
-      var fl = (step && step.step.floor) || floorOf(cur.b);
+      var fl = (step && step.step.floor) || (pk && pk.floor) || floorOf(cur.b);
       m.floor = fl ? 'Floor: ' + fl : '';
-      m.next = 'Next ' + fmtTime(nx.b.start) + dayWord(nx.s, t.day) + ' · ' + nx.b.label +
+      m.next = 'Next ' + fmtTime(nx.b.start) + dayWord(nx.s, t.day) + ' · ' + nameOf(nx.b) +
         (nx.s > cur.e ? ' · in ' + fmtDur(Math.ceil(nx.s - w)) : '');
     } else {
-      var n = nextFrom(Math.ceil(w)), from = prevEnd(w), nf = floorOf(n.b);
+      var n = nextFrom(Math.ceil(w)), from = prevEnd(w), np = pickOf(n.b), nf = (np && np.floor) || floorOf(n.b);
+      m.block = null;
       m.cat = 'free';
       m.kicker = 'Free time';
       m.label = 'Free until ' + fmtTime(n.b.start) + dayWord(n.s, t.day);
@@ -123,7 +131,7 @@
       m.left = fmtDur(Math.ceil(n.s - w)) + ' free';
       m.progress = (w - from) / (n.s - from);
       m.floor = '';
-      m.next = 'Then ' + n.b.label + (nf ? ' · floor: ' + nf : '');
+      m.next = 'Then ' + nameOf(n.b) + (nf ? ' · floor: ' + nf : '');
     }
     m.night = night.from > night.to ? (t.min >= night.from || t.min < night.to) : (t.min >= night.from && t.min < night.to);
     return m;
@@ -163,6 +171,7 @@
     set('date', DAYS[t.day] + ' ' + t.date + ' ' + MONTHS[t.month]);
     if (!blocks.length) { set('label', 'No blocks in the schedule'); return t; }
     var m = model(t);
+    current = m.block;
     var before = shown.label + shown.sub + shown.floor + shown.next + shown.left.length;
     ['kicker', 'label', 'sub', 'left', 'floor', 'next'].forEach(function (k) { set(k, m[k]); });
     if (shown.label + shown.sub + shown.floor + shown.next + shown.left.length !== before) fit();
@@ -177,7 +186,8 @@
   }
   function tick() {
     var now = new Date();
-    render(now);
+    var t = render(now);
+    if (window.NowPlan) window.NowPlan.tick(t, current);
     var minute = Math.floor(now.getTime() / 60e3);
     if (minute !== lastMinute) { lastMinute = minute; freshen(); maybeReload(); }
     lastTick = now.getTime();
@@ -247,6 +257,14 @@
     el.clockAp = $('clock-ap');
     load(data);
     loadedDay = reloadDay(Date.now());
+    window.NowPlan.init({
+      blocks: function () { return blocks.map(function (x) { return x.b; }); },
+      now: function () { return hkNow(new Date()); },
+      dayKey: function () { return reloadDay(Date.now()); },
+      fmtTime: fmtTime,
+      onChange: function () { render(new Date()); }
+    });
+    $('app').addEventListener('click', function (e) { if (e.target !== el.wake) window.NowPlan.tap(); });
     root.style.setProperty('--stale-after', STALE_AFTER + 's');
     shown.left = '';
     window.addEventListener('resize', fit);

@@ -9,7 +9,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#000000">
   <title>/*[|template_title|]*/0</title>
@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="now.css">
   <script id="staticrypt-config" type="application/json">/*[|staticrypt_config|]*/0</script>
   <script src="vendor/staticrypt.js" defer></script>
+  <script src="plan.js" defer></script>
   <script src="now.js" defer></script>
   <script src="unlock.js" defer></script>
 </head>
@@ -50,5 +51,13 @@
     <p class="banner" id="banner" role="status" hidden></p>
     <button class="wake" id="wake" type="button" hidden>Screen may turn off. Tap to keep it on.</button>
   </main>
+
+  <section class="plan" id="plan" aria-labelledby="plan-title" hidden>
+    <div class="plan-bar">
+      <h2 class="plan-title" id="plan-title"></h2>
+      <button class="plan-done" id="plan-done" type="button">Done</button>
+    </div>
+    <div class="plan-body" id="plan-body"></div>
+  </section>
 </body>
 </html>

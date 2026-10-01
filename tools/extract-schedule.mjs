@@ -1,6 +1,9 @@
 // Reads private/schedule.html and returns the schedule as plain data for the "now" display:
 //   blocks    from the script element with id "state" (day 0 = Monday … 6 = Sunday, start/end in minutes after midnight)
 //   cats      from the CATS list in the main script (name, description, and the "floor" taken from "Floor: …")
+//   flags     planning: true on Planning blocks; open: true on the Pastimes and Movement blocks to choose for at
+//             Planning (those whose note mentions planning, so a block that's already decided is left out). Worked
+//             out here, so the public display code never needs the schedule's own words.
 //   routines  from the ROUTINES list, with the written times (like "7:15–8am" or "~10:45pm") turned into minutes
 // Nothing is retyped: the lists are read from the file itself. Used by tools/build-now.mjs; run it on its own
 // to check the extraction:  node tools/extract-schedule.mjs   (prints a summary, not the schedule itself)
@@ -11,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const SCHEDULE = path.join(ROOT, 'private', 'schedule.html');
+const PICK_CATS = new Set(['create', 'movement']); // categories chosen at Planning: Pastimes and Movement
 
 // "7:15" + "am" -> 435. Returns null if it isn't a time.
 function clock(t, suffix) {
@@ -67,7 +71,12 @@ export function extract(file = SCHEDULE) {
   }));
 
   return {
-    blocks: blocks.map(b => ({ id: b.id, day: b.day, start: b.start, end: b.end, cat: b.cat, label: b.label, note: b.note || '' })),
+    blocks: blocks.map(b => {
+      const out = { id: b.id, day: b.day, start: b.start, end: b.end, cat: b.cat, label: b.label, note: b.note || '' };
+      if (b.cat === 'planning') out.planning = true;
+      else if (PICK_CATS.has(b.cat) && /\bplanning\b/i.test(b.note || '')) out.open = true;
+      return out;
+    }),
     cats,
     routines
   };
@@ -100,6 +109,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   console.log(`${data.blocks.length} blocks, ${Object.keys(data.cats).length} categories ` +
     `(${Object.values(data.cats).filter(c => c.floor).length} with a floor), ` +
     `${data.routines.length} routines with ${data.routines.reduce((n, r) => n + r.steps.length, 0)} steps.`);
+  console.log(`${data.blocks.filter(b => b.planning).length} Planning blocks, ${data.blocks.filter(b => b.open).length} blocks to choose for at Planning.`);
   console.log(problems.length ? 'Problems:\n  ' + problems.join('\n  ') : 'No problems found.');
   process.exit(problems.length ? 1 : 0);
 }

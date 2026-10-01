@@ -92,6 +92,36 @@ p, h1 { margin: 0; }
 .night .now { opacity: .38; }
 .night .bar-fill { background: var(--dim); }
 
+/* ---------- planning picker (plan.js) ---------- */
+.plan {
+  position: fixed; inset: 0; z-index: 2; box-sizing: border-box; background: var(--bg);
+  display: flex; flex-direction: column;
+  padding: max(3vh, env(safe-area-inset-top)) max(4vw, env(safe-area-inset-right)) max(3vh, env(safe-area-inset-bottom)) max(4vw, env(safe-area-inset-left));
+  font-size: max(16px, 5.6vmin); user-select: auto;
+}
+.plan-bar { display: flex; align-items: center; gap: 1em; padding-bottom: .5em; border-bottom: 1px solid var(--faint); }
+.plan-title { flex: 1; margin: 0; font-size: 1.15em; font-weight: 650; color: hsl(210 72% 64%); }
+.plan-body { flex: 1; min-height: 0; overflow-y: auto; padding-top: .6em; display: flex; flex-direction: column; gap: .5em; }
+.plan button { font: inherit; color: var(--fg); background: #141414; border: 1px solid #44413c; border-radius: .4em; min-height: 2.2em; padding: .3em .8em; }
+.plan-done { font-weight: 650; }
+.plan-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2em 1em; text-align: left; padding: .45em .8em; }
+.plan-row.picked { border-color: hsl(150 50% 45%); }
+.plan-when { color: var(--dim); min-width: 7.5em; }
+.plan-what { font-weight: 600; }
+.plan-floor { flex-basis: 100%; color: var(--dim); font-size: .85em; }
+.plan-empty { color: var(--dim); }
+.chips { display: flex; flex-wrap: wrap; gap: .45em; }
+.plan .chip.on { border-color: hsl(150 50% 45%); background: hsl(150 40% 14%); }
+.chips.forgetting .chip { border-color: var(--warn); color: var(--warn); }
+.plan-new { display: flex; flex-wrap: wrap; gap: .45em; }
+.plan-input {
+  font: inherit; flex: 1 1 12em; min-width: 0; padding: .35em .6em; border-radius: .4em;
+  border: 1px solid #55524c; background: #111; color: var(--fg);
+}
+.plan .plan-save { font-weight: 650; background: hsl(210 72% 64%); color: #000; border: 0; }
+.plan-actions { display: flex; flex-wrap: wrap; gap: .45em; margin-top: .3em; }
+.plan-actions .plan-btn { color: var(--dim); }
+
 /* Phone set to reduce motion (and the screenshot tests): change instantly instead of fading or sliding. */
 @media (prefers-reduced-motion: reduce) {
   .now, .bar-fill { transition: none; }
