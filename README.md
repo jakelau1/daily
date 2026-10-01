@@ -89,6 +89,7 @@ How it fits together:
   the build). The policy did not need loosening.
 - "Remember on this device" stores a salted hash of the password in that browser, with no expiry, so the daily
   reload unlocks by itself. To forget it on a device, open the page with `#staticrypt_logout` at the end of the address.
+- `npm run check-live` checks the published page on GitHub Pages the way the phone uses it.
 - `npm run test-now` tests the encrypted page end to end in headless Chromium with simulated days and times
   (screenshots in `build/screenshots/`, git-ignored).
 - `tools/check-private.mjs` runs before every commit (install it once per computer with
