@@ -1,0 +1,13 @@
+{
+  "name": "daily",
+  "private": true,
+  "description": "Build tools for the encrypted 'now' display. The site itself has no build step.",
+  "devDependencies": {
+    "playwright-core": "^1.63.0",
+    "staticrypt": "3.5.4"
+  },
+  "scripts": {
+    "now": "node tools/build-now.mjs",
+    "test-now": "node tools/test-now.mjs"
+  }
+}

@@ -1,0 +1,54 @@
+<!doctype html>
+<!-- StatiCrypt template for now/index.html, used by tools/build-now.mjs. Don't edit now/index.html itself.
+     Unlike StatiCrypt's own template, this one has no inline script or style, so the page keeps the site's strict
+     Content-Security-Policy: the encrypted data sits in a JSON block (which never runs), and the code that
+     unlocks it is in now/unlock.js. Keep schedule content out of this file: it is published unencrypted. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <title>/*[|template_title|]*/0</title>
+  <link rel="icon" href="../assets/img/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/css/fonts.css">
+  <link rel="stylesheet" href="now.css">
+  <script id="staticrypt-config" type="application/json">/*[|staticrypt_config|]*/0</script>
+  <script src="vendor/staticrypt.js" defer></script>
+  <script src="now.js" defer></script>
+  <script src="unlock.js" defer></script>
+</head>
+<body>
+  <p class="loading" id="loading">Unlocking…</p>
+
+  <form class="lock" id="lock" hidden>
+    <h1>Locked</h1>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required>
+    <label class="remember"><input id="remember" type="checkbox" checked> Remember on this device</label>
+    <button type="submit" id="unlock">Unlock</button>
+    <p class="lock-msg" id="lock-msg" role="status"></p>
+  </form>
+
+  <main class="now" id="app" hidden>
+    <section class="time">
+      <p class="clock live" id="clock"><span id="clock-hm"></span><span class="ap" id="clock-ap"></span></p>
+      <p class="date" id="date"></p>
+    </section>
+    <section class="block">
+      <p class="kicker" id="kicker"></p>
+      <h1 class="label" id="label"></h1>
+      <p class="sub" id="sub"></p>
+      <p class="left live" id="left"></p>
+      <div class="bar" id="bar-wrap"><div class="bar-fill" id="bar"></div></div>
+      <p class="floor" id="floor"></p>
+      <p class="next" id="next"></p>
+    </section>
+    <p class="banner" id="banner" role="status" hidden></p>
+    <button class="wake" id="wake" type="button" hidden>Screen may turn off. Tap to keep it on.</button>
+  </main>
+</body>
+</html>

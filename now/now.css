@@ -1,0 +1,114 @@
+/* The "now" display: one screen on an always-on phone, read from across a room.
+   Landscape first (sizes follow the screen's height); portrait also works (sizes follow its width).
+   Pure black background: on OLED screens black pixels are off, which saves power and reduces burn-in. */
+:root {
+  --bg: #000;
+  --fg: #ebe6dc;
+  --dim: #9a958c;
+  --faint: #3b3935;
+  --warn: #ffb547;
+  --hue: 210;
+  --accent: hsl(var(--hue) 72% 64%);
+  --dx: 0;
+  --dy: 0;
+  --nudge: 1.4vmin;
+  --stale-after: 150s;
+  --fit: 1;              /* now.js lowers this when a long name or floor wouldn't fit */
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--fg); }
+body {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
+}
+p, h1 { margin: 0; }
+
+/* ---------- locked / loading ---------- */
+.loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--dim); font-size: 5vmin; }
+.lock {
+  box-sizing: border-box; max-width: 30rem; margin: 0 auto; padding: 6vh 1rem;
+  display: flex; flex-direction: column; gap: .8rem; font-size: 1.15rem; user-select: auto;
+}
+.lock h1 { font-size: 2rem; font-weight: 600; }
+.lock input[type=password] {
+  font: inherit; font-size: 1.3rem; padding: .7rem .8rem; border-radius: .5rem;
+  border: 1px solid #55524c; background: #111; color: var(--fg);
+}
+.lock .remember { display: flex; align-items: center; gap: .6rem; color: var(--dim); }
+.lock .remember input { width: 1.3rem; height: 1.3rem; }
+.lock button {
+  font: inherit; font-weight: 600; padding: .8rem; border: 0; border-radius: .5rem;
+  background: hsl(210 72% 64%); color: #000;
+}
+.lock button:disabled { opacity: .5; }
+.lock-msg { min-height: 1.5em; color: var(--warn); }
+
+/* ---------- the display ---------- */
+.now {
+  position: fixed; inset: 0; box-sizing: border-box;
+  padding: max(5vh, env(safe-area-inset-top)) max(5vw, env(safe-area-inset-right)) max(5vh, env(safe-area-inset-bottom)) max(5vw, env(safe-area-inset-left));
+  display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5vw;
+  transform: translate(calc(var(--dx) * var(--nudge)), calc(var(--dy) * var(--nudge)));
+  transition: transform 4s ease-in-out, opacity 60s linear;
+}
+.time, .block { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.time { justify-content: center; }
+.clock { font-size: min(26vh, 10vw); font-weight: 300; line-height: .95; letter-spacing: -.02em; white-space: nowrap; }
+.clock .ap { font-size: .28em; font-weight: 400; margin-left: .15em; color: var(--dim); letter-spacing: 0; }
+.date { font-size: 6.5vh; color: var(--dim); margin-top: 2vh; }
+
+.kicker { font-size: calc(5vh * var(--fit)); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.label { font-size: calc(16vh * var(--fit)); font-weight: 650; line-height: 1.02; margin-top: 1vh; overflow-wrap: anywhere; }
+.sub { font-size: calc(6.4vh * var(--fit)); color: var(--dim); margin-top: .8vh; line-height: 1.15; }
+.left { font-size: calc(13vh * var(--fit)); font-weight: 500; margin-top: 2.6vh; line-height: 1; }
+.bar { height: 1.3vh; margin-top: 2vh; background: var(--faint); border-radius: 1vh; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--accent); transform-origin: left; transform: scaleX(var(--p, 0)); transition: transform 1s linear; }
+.floor { font-size: calc(7vh * var(--fit)); margin-top: 2.6vh; line-height: 1.2; }
+.next { font-size: calc(6vh * var(--fit)); color: var(--dim); margin-top: auto; padding-top: 2vh; line-height: 1.2; }
+.is-free .label { font-weight: 500; }
+
+/* A number nobody has updated for --stale-after seconds turns grey. Uses opacity, which the browser can animate
+   even when the page's script has stopped. */
+.live { opacity: .28; }
+.live.fresh { opacity: 1; animation: go-stale 1ms linear var(--stale-after) forwards; }
+@keyframes go-stale { to { opacity: .28; } }
+
+/* No connection */
+.banner {
+  position: fixed; left: 0; right: 0; top: 0; padding: 1.4vh 5vw;
+  background: #3a2600; color: var(--warn); font-size: 4.6vh; font-weight: 600;
+}
+.offline .now { padding-top: 13vh; }
+
+.wake {
+  position: fixed; right: 2vw; bottom: 2vh; max-width: 60vw; padding: 1.2vh 2vw;
+  font: inherit; font-size: 3.6vh; border: 1px solid #55524c; border-radius: 1vh; background: #111; color: var(--dim);
+}
+
+/* Night: dim everything and stop the progress bar from glowing. */
+.night .now { opacity: .38; }
+.night .bar-fill { background: var(--dim); }
+
+/* Phone set to reduce motion (and the screenshot tests): change instantly instead of fading or sliding. */
+@media (prefers-reduced-motion: reduce) {
+  .now, .bar-fill { transition: none; }
+}
+
+/* ---------- portrait ---------- */
+@media (orientation: portrait) {
+  .now { grid-template-columns: 1fr; grid-template-rows: auto 1fr; gap: 4vh; }
+  .clock { font-size: 24vw; }
+  .date { font-size: 5.5vw; margin-top: 1vh; }
+  .kicker { font-size: calc(4.4vw * var(--fit)); }
+  .label { font-size: calc(13vw * var(--fit)); }
+  .sub { font-size: calc(5.6vw * var(--fit)); }
+  .floor { font-size: calc(6.2vw * var(--fit)); }
+  .left { font-size: calc(10.5vw * var(--fit)); }
+  .bar { height: 1.2vw; }
+  .next { font-size: calc(5.2vw * var(--fit)); }
+  .banner, .wake { font-size: 4vw; }
+  .offline .now { padding-top: 12vh; }
+}

@@ -1,0 +1,271 @@
+// The "now" display: clock, the current block, time left, its floor, and what's next ("Free until …" in gaps).
+// unlock.js decrypts the schedule and calls NowApp.start(data); tools/extract-schedule.mjs describes the data.
+// This file is published unencrypted, so it must never contain anything from the schedule itself.
+(function () {
+  'use strict';
+  var TZ = 'Asia/Hong_Kong';            // always Hong Kong time, even if the phone's time zone is set wrongly
+  var DAY = 1440, WEEK = 7 * DAY;       // minutes
+  var STALE_AFTER = 150;                // seconds without an update before a number greys out (also in now.css)
+  var SHIFT_EVERY = 3 * 60e3;           // burn-in: nudge the layout every 3 minutes
+  var PING_EVERY = 2 * 60e3;            // connection check
+  var RELOAD_AT = 4 * 60;               // daily reload at 4am Hong Kong time
+  var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  var SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  var HUES = [200, 150, 32, 280, 340, 95, 180, 250, 12, 55, 310, 125];
+
+  var $ = function (id) { return document.getElementById(id); };
+  var root = document.documentElement;
+  var el = {};
+  var blocks = [], routines = [], cats = {}, night = { from: 23 * 60, to: 7 * 60 };
+  var shown = {}, lastMinute = null, lastTick = 0, loadedDay = null, offlineSince = null, wakeLock = null, shiftStep = 0, reloadTry = 0;
+
+  // ---------- time ----------
+  var parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TZ, year: 'numeric', month: 'numeric', day: 'numeric', weekday: 'short',
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hourCycle: 'h23'
+  });
+  function hkNow(date) {
+    var p = {};
+    parts.formatToParts(date).forEach(function (x) { p[x.type] = x.value; });
+    var day = SHORT.indexOf(p.weekday);
+    var min = +p.hour * 60 + +p.minute;
+    return { day: day, min: min, sec: +p.second, date: +p.day, month: +p.month - 1, year: +p.year, week: day * DAY + min + p.second / 60 };
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  // 435 -> "7:15am", 480 -> "8am", 720 -> "noon", 0 or 1440 -> "midnight"
+  function fmtTime(min) {
+    min = ((Math.round(min) % DAY) + DAY) % DAY;
+    if (min === 0) return 'midnight';
+    if (min === 720) return 'noon';
+    var h = Math.floor(min / 60), m = min % 60;
+    return (h % 12 || 12) + (m ? ':' + pad(m) : '') + (h < 12 ? 'am' : 'pm');
+  }
+  // whole minutes -> "42 min", "1 hr 5 min", "3 hr"
+  function fmtDur(min) {
+    if (min < 1) return 'under a minute';
+    if (min < 60) return min + ' min';
+    var h = Math.floor(min / 60), m = min % 60;
+    return h + ' hr' + (m ? ' ' + m + ' min' : '');
+  }
+  // " tomorrow" or " on Saturday" when a week-minute is not today
+  function dayWord(weekMin, today) {
+    var d = ((Math.floor(weekMin / DAY) - today) % 7 + 7) % 7;
+    return d === 0 ? '' : d === 1 ? ' tomorrow' : ' on ' + DAYS[Math.floor(weekMin / DAY) % 7];
+  }
+
+  // ---------- schedule ----------
+  function load(data) {
+    cats = data.cats || {};
+    routines = data.routines || [];
+    blocks = (data.blocks || []).map(function (b) {
+      return { b: b, s: b.day * DAY + b.start, e: b.day * DAY + b.end };
+    }).sort(function (x, y) { return x.s - y.s; });
+    // Dim from bedtime (the evening routine's last step) until half an hour before the morning routine.
+    var eve = routines.filter(function (r) { return /evening/i.test(r.name); })[0];
+    var morn = routines.filter(function (r) { return /morning/i.test(r.name); })[0];
+    if (eve && eve.steps.length) night.from = eve.steps[eve.steps.length - 1].start;
+    if (morn && morn.steps.length) night.to = Math.max(0, morn.steps[0].start - 30);
+  }
+  // The block that starts at or after week-minute t, wrapping from Sunday night to Monday.
+  function nextFrom(t) {
+    for (var i = 0; i < blocks.length; i++) if (blocks[i].s >= t) return blocks[i];
+    var f = blocks[0];
+    return { b: f.b, s: f.s + WEEK, e: f.e + WEEK };
+  }
+  function prevEnd(t) {
+    var best = null;
+    for (var i = 0; i < blocks.length; i++) if (blocks[i].e <= t) best = blocks[i].e;
+    if (best === null) best = blocks[blocks.length - 1].e - WEEK;
+    return best;
+  }
+  // Inside a routine block: which step is it? Steps without an end run until the next step (or the block's end).
+  function stepAt(cur, min) {
+    var r = routines.filter(function (x) { return x.name === cur.b.label; })[0];
+    if (!r) return null;
+    for (var i = 0; i < r.steps.length; i++) {
+      var st = r.steps[i], nx = r.steps[i + 1];
+      var end = st.end != null ? st.end : nx ? nx.start : cur.b.end;
+      if (st.start <= min && min < end) return { step: st, end: end, next: nx || null };
+    }
+    return null;
+  }
+  function floorOf(b) { return cats[b.cat] && cats[b.cat].floor; }
+  function hueOf(key) {
+    var h = 0;
+    for (var i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+    return HUES[h % HUES.length];
+  }
+
+  // What the screen should say at a given moment.
+  function model(t) {
+    var w = t.week, cur = null;
+    for (var i = 0; i < blocks.length; i++) if (blocks[i].s <= w && w < blocks[i].e) cur = blocks[i];
+    var m = {};
+    if (cur) {
+      var nx = nextFrom(cur.e), step = stepAt(cur, t.min);
+      m.cat = cur.b.cat;
+      m.kicker = 'Now · until ' + fmtTime(cur.b.end);
+      m.label = cur.b.label;
+      m.sub = step ? step.step.title + ' · until ' + fmtTime(step.end) + (step.step.approx ? ' or so' : '') : cur.b.note;
+      m.left = fmtDur(Math.ceil(cur.e - w)) + ' left';
+      m.progress = (w - cur.s) / (cur.e - cur.s);
+      var fl = (step && step.step.floor) || floorOf(cur.b);
+      m.floor = fl ? 'Floor: ' + fl : '';
+      m.next = 'Next ' + fmtTime(nx.b.start) + dayWord(nx.s, t.day) + ' · ' + nx.b.label +
+        (nx.s > cur.e ? ' · in ' + fmtDur(Math.ceil(nx.s - w)) : '');
+    } else {
+      var n = nextFrom(Math.ceil(w)), from = prevEnd(w), nf = floorOf(n.b);
+      m.cat = 'free';
+      m.kicker = 'Free time';
+      m.label = 'Free until ' + fmtTime(n.b.start) + dayWord(n.s, t.day);
+      m.sub = '';
+      m.left = fmtDur(Math.ceil(n.s - w)) + ' free';
+      m.progress = (w - from) / (n.s - from);
+      m.floor = '';
+      m.next = 'Then ' + n.b.label + (nf ? ' · floor: ' + nf : '');
+    }
+    m.night = night.from > night.to ? (t.min >= night.from || t.min < night.to) : (t.min >= night.from && t.min < night.to);
+    return m;
+  }
+
+  // ---------- screen ----------
+  function set(id, text) {
+    if (shown[id] === text) return;
+    shown[id] = text;
+    el[id].textContent = text;
+    el[id].hidden = !text;
+  }
+  // Each number fades to grey STALE_AFTER seconds after its last update. The fade is a CSS animation, so it
+  // still happens if this script stops running; every minute the script restarts it.
+  function freshen() {
+    var live = document.querySelectorAll('.live');
+    for (var i = 0; i < live.length; i++) {
+      live[i].classList.remove('fresh');
+      void live[i].offsetWidth;
+      live[i].classList.add('fresh');
+    }
+  }
+  // Shrink the right-hand text in small steps until it fits on one screen (and grow it back when it can).
+  function fit() {
+    var box = document.querySelector('.block'), f = 1;
+    root.style.setProperty('--fit', f);
+    while (f > 0.55 && (box.scrollHeight > box.clientHeight + 1 || box.scrollWidth > box.clientWidth + 1)) {
+      f = Math.round((f - 0.05) * 100) / 100;
+      root.style.setProperty('--fit', f);
+    }
+  }
+  function render(now) {
+    var t = hkNow(now);
+    var hm = (Math.floor(t.min / 60) % 12 || 12) + ':' + pad(t.min % 60);
+    set('clockHm', hm);
+    set('clockAp', t.min < 720 ? 'am' : 'pm');
+    set('date', DAYS[t.day] + ' ' + t.date + ' ' + MONTHS[t.month]);
+    if (!blocks.length) { set('label', 'No blocks in the schedule'); return t; }
+    var m = model(t);
+    var before = shown.label + shown.sub + shown.floor + shown.next + shown.left.length;
+    ['kicker', 'label', 'sub', 'left', 'floor', 'next'].forEach(function (k) { set(k, m[k]); });
+    if (shown.label + shown.sub + shown.floor + shown.next + shown.left.length !== before) fit();
+    el.bar.style.setProperty('--p', Math.max(0, Math.min(1, m.progress)).toFixed(4));
+    if (shown.cat !== m.cat) {
+      shown.cat = m.cat;
+      root.style.setProperty('--hue', m.cat === 'free' ? 210 : hueOf(m.cat));
+      root.classList.toggle('is-free', m.cat === 'free');
+    }
+    root.classList.toggle('night', m.night);
+    return t;
+  }
+  function tick() {
+    var now = new Date();
+    render(now);
+    var minute = Math.floor(now.getTime() / 60e3);
+    if (minute !== lastMinute) { lastMinute = minute; freshen(); maybeReload(); }
+    lastTick = now.getTime();
+    setTimeout(tick, 1000 - (Date.now() % 1000) + 20);
+  }
+
+  // ---------- burn-in: move everything a few pixels every few minutes ----------
+  var OFFSETS = [[0, 0], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  function shift() {
+    shiftStep = (shiftStep + 1) % OFFSETS.length;
+    root.style.setProperty('--dx', OFFSETS[shiftStep][0]);
+    root.style.setProperty('--dy', OFFSETS[shiftStep][1]);
+  }
+
+  // ---------- connection ----------
+  function setOnline(ok) {
+    if (ok) {
+      offlineSince = null;
+      el.banner.hidden = true;
+    } else {
+      if (offlineSince === null) offlineSince = new Date();
+      el.banner.textContent = 'No connection since ' + fmtTime(hkNow(offlineSince).min) +
+        '. The schedule still works; the daily reload will wait for the connection.';
+      el.banner.hidden = false;
+    }
+    root.classList.toggle('offline', !ok);
+  }
+  function ping() {
+    return fetch('ping.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) {
+      setOnline(r.ok);
+      return r.ok;
+    }, function () { setOnline(false); return false; });
+  }
+
+  // ---------- daily reload (picks up schedule changes; only when the connection works) ----------
+  // The "reload day" changes at 4am, so the page reloads once a day at 4am whenever it was opened.
+  function reloadDay(ms) {
+    var t = hkNow(new Date(ms - RELOAD_AT * 60e3));
+    return t.year + '-' + t.month + '-' + t.date;
+  }
+  function maybeReload() {
+    if (reloadDay(Date.now()) === loadedDay || Date.now() < reloadTry) return;
+    reloadTry = Date.now() + 5 * 60e3;
+    ping().then(function (ok) { if (ok) location.reload(); });
+  }
+
+  // ---------- keep the screen on ----------
+  function wake() {
+    if (!('wakeLock' in navigator)) {
+      el.wake.textContent = 'This browser can’t keep the screen on. Use the phone’s “Stay awake while charging” setting.';
+      el.wake.hidden = false;
+      return;
+    }
+    navigator.wakeLock.request('screen').then(function (lock) {
+      wakeLock = lock;
+      el.wake.hidden = true;
+      lock.addEventListener('release', function () {
+        wakeLock = null;
+        if (document.visibilityState === 'visible') wake();
+      });
+    }, function () { el.wake.hidden = false; });
+  }
+
+  function start(data) {
+    ['clock', 'date', 'kicker', 'label', 'sub', 'left', 'floor', 'next', 'bar', 'banner', 'wake'].forEach(function (id) { el[id] = $(id); });
+    el.clockHm = $('clock-hm');
+    el.clockAp = $('clock-ap');
+    load(data);
+    loadedDay = reloadDay(Date.now());
+    root.style.setProperty('--stale-after', STALE_AFTER + 's');
+    shown.left = '';
+    window.addEventListener('resize', fit);
+    $('app').hidden = false;
+    tick();
+    setInterval(shift, SHIFT_EVERY);
+    setInterval(ping, PING_EVERY);
+    window.addEventListener('offline', function () { setOnline(false); });
+    window.addEventListener('online', ping);
+    el.wake.addEventListener('click', wake);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      if (!wakeLock) wake();
+      if (Date.now() - lastTick > 5000) { render(new Date()); freshen(); }
+      ping();
+    });
+    wake();
+    ping();
+  }
+
+  window.NowApp = { start: start };
+})();

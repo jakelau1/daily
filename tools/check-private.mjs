@@ -8,19 +8,22 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 const SCHEDULE = path.join(ROOT, 'private', 'schedule.html');
 
-if (process.argv.includes('--install')) {
+const isMain = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isMain && process.argv.includes('--install')) {
   const hook = path.join(ROOT, '.git', 'hooks', 'pre-commit');
   fs.writeFileSync(hook, '#!/bin/sh\nexec node tools/check-private.mjs\n', { mode: 0o755 });
   console.log('Installed', hook);
   process.exit(0);
 }
 
-const git = args => execFileSync('git', args, { cwd: ROOT, encoding: 'buffer', maxBuffer: 64 << 20 });
-const staged = git(['diff', '--cached', '--name-only', '--diff-filter=ACMR', '-z']).toString('utf8').split('\0').filter(Boolean);
+export const git = args => execFileSync('git', args, { cwd: ROOT, encoding: 'buffer', maxBuffer: 64 << 20 });
+const staged = !isMain ? [] : git(['diff', '--cached', '--name-only', '--diff-filter=ACMR', '-z']).toString('utf8').split('\0').filter(Boolean);
 
 const problems = [];
 for (const f of staged) {
@@ -29,7 +32,7 @@ for (const f of staged) {
 
 // Distinctive phrases from the schedule. Short or generic words are left out so ordinary
 // site text doesn't trip the check.
-function phrases() {
+export function phrases() {
   const html = fs.readFileSync(SCHEDULE, 'utf8');
   const out = new Set(['<script id=' + '"state"']); // split so this file doesn't match itself
   const state = html.match(/<script id=\"state\" type="application\/json">([\s\S]*?)<\/script>/);
@@ -40,12 +43,17 @@ function phrases() {
   }
   const code = html.match(/var CATS = \[[\s\S]*?\n\];\s*var ROUTINES = \[[\s\S]*?\n\];/);
   if (code) {
-    for (const m of code[0].matchAll(/'((?:[^'\\]|\\.){20,})'/g)) out.add(m[1].replace(/\\'/g, "'"));
+    for (const m of code[0].matchAll(/'((?:[^'\\]|\\.){12,})'/g)) {
+      const s = m[1].replace(/\\'/g, "'");
+      out.add(s);
+      // each sentence and each floor on its own, so a part copied elsewhere is caught too
+      for (const part of s.split(/(?<=\.)\s+|Floor:\s*/)) if (part.trim().length >= 12) out.add(part.trim());
+    }
   }
   return [...out];
 }
 
-if (fs.existsSync(SCHEDULE)) {
+if (isMain && fs.existsSync(SCHEDULE)) {
   const list = phrases();
   for (const f of staged) {
     if (problems.some(p => p.startsWith(f + ':'))) continue;
@@ -55,12 +63,12 @@ if (fs.existsSync(SCHEDULE)) {
     const hit = list.find(p => text.includes(p));
     if (hit) problems.push(`${f}: contains text from your schedule (starting "${hit.slice(0, 12)}…")`);
   }
-} else {
+} else if (isMain) {
   console.warn('check-private: private/schedule.html not found, so only file names were checked.');
 }
 
-if (problems.length) {
+if (isMain && problems.length) {
   console.error('\nCommit stopped by the privacy check:\n  ' + problems.join('\n  ') + '\n');
   process.exit(1);
 }
-console.log(`check-private: ${staged.length} staged file(s) checked, nothing private found.`);
+if (isMain) console.log(`check-private: ${staged.length} staged file(s) checked, nothing private found.`);

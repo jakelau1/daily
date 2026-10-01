@@ -62,6 +62,44 @@ Things to know:
 No analytics, cookies or third-party scripts or fonts. Each page can only contact its own site and the government
 servers listed in its Content-Security-Policy.
 
+## The "now" display (`now/`)
+
+An always-on page for an old phone: the clock, the current block of the week's schedule, time left, its "floor"
+(the smallest first step), and what's next, or "Free until …" between blocks. It is not linked from any other page.
+
+**The schedule is private.** It lives in `private/schedule.html`, which git ignores, and is only ever published
+encrypted with [StatiCrypt](https://github.com/robinmoisson/staticrypt) inside `now/index.html`. Everything else in
+`now/` is ordinary public code with no schedule content in it.
+
+After saving a new `private/schedule.html`:
+
+    npm run now                 # rebuild and check the encrypted page
+    npm run now -- --publish    # the same, then commit and push it (the site updates within a few minutes)
+
+The display picks up the new version at its next daily reload (4am), or straight away if you reload it.
+
+How it fits together:
+- `tools/extract-schedule.mjs` reads the blocks, categories (with their floors) and routines out of the schedule file.
+- `tools/build-now.mjs` encrypts that data with the password in `.env` (git-ignored) and the salt in
+  `.staticrypt.json` (not secret; keep it, because a new salt makes every device ask for the password again). It then
+  checks the result: no readable schedule text, no inline code, and it decrypts back to the same data.
+- `tools/now-template.html` is the page around the encrypted data. StatiCrypt's own template uses inline code, which
+  the site's Content-Security-Policy refuses, so this one keeps the data in a JSON block and the code in
+  `now/unlock.js` (unlocking), `now/now.js` (the display) and `now/vendor/staticrypt.js` (StatiCrypt's code, made by
+  the build). The policy did not need loosening.
+- "Remember on this device" stores a salted hash of the password in that browser, with no expiry, so the daily
+  reload unlocks by itself. To forget it on a device, open the page with `#staticrypt_logout` at the end of the address.
+- `npm run test-now` tests the encrypted page end to end in headless Chromium with simulated days and times
+  (screenshots in `build/screenshots/`, git-ignored).
+- `tools/check-private.mjs` runs before every commit (install it once per computer with
+  `node tools/check-private.mjs --install`) and stops a commit that includes `private/`, `build/`, `.env` or readable
+  schedule text.
+
+On the phone: shifts the layout a little every 3 minutes and dims at night (from bedtime until half an hour before
+the morning routine) to reduce burn-in; asks the browser to keep the screen on; reloads once a day at 4am, but only
+when the site can be reached; greys out a number that hasn't been updated for 2½ minutes; and shows a banner
+when the connection is lost.
+
 ## Hiking section
 
 `hiking/` is the Hiking section at `…/daily/hiking/`. It shows Hong Kong's country park hiking routes on a Lands Department map, with each

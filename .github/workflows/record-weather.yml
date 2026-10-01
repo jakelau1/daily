@@ -70,7 +70,7 @@ jobs:
       - name: Assemble the site (public folders only; leaves out scripts, tools, partials and .github)
         run: |
           mkdir _site
-          cp -r index.html 404.html .nojekyll assets weather hiking arrivals cams trips savings study _site/
+          cp -r index.html 404.html .nojekyll assets weather hiking arrivals cams trips savings study now _site/
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
