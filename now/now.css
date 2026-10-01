@@ -76,9 +76,35 @@ p, h1 { margin: 0; }
 .live.fresh { opacity: 1; animation: go-stale 1ms linear var(--stale-after) forwards; }
 @keyframes go-stale { to { opacity: .28; } }
 
+.wx { font-size: 5.6vh; color: var(--dim); margin-top: 1.6vh; }
+.wx-problem { color: var(--warn); font-size: .8em; }
+/* A weather reading that is too old (wx.js decides) is greyed, whatever the animation says. */
+.old, .live.old { opacity: .28 !important; }
+.prompt { font-size: calc(6.2vh * var(--fit)); margin-top: 2.2vh; color: var(--warn); font-weight: 600; line-height: 1.2; }
+
+/* ---------- typhoon signal or rainstorm warning: takes over the screen ---------- */
+.alert {
+  position: fixed; inset: 0; z-index: 3; box-sizing: border-box; padding: 6vh 6vw;
+  display: flex; flex-direction: column; justify-content: center;
+  background: #10233d; color: #fff; user-select: none;
+}
+/* burn-in shift moves the words, not the coloured panel (which must keep covering the whole screen) */
+.alert > * { transform: translate(calc(var(--dx) * var(--nudge)), calc(var(--dy) * var(--nudge))); }
+.alert-from { font-size: 4.6vh; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.alert-title { font-size: 12.5vh; font-weight: 700; line-height: 1.03; margin-top: 1.5vh; }
+.alert-when { font-size: 5.4vh; margin-top: .6vh; margin-bottom: 1.2vh; opacity: .85; }
+.alert-issued { font-size: 5vh; margin-top: 1vh; color: inherit; }
+.alert-strip { font-size: 6vh; margin-top: 4vh; font-weight: 600; }
+.alert-hint { font-size: 4vh; margin-top: 1vh; opacity: .65; }
+.alert.level-high { background: #5c0b0b; }
+.alert.level-amber { background: #f2a900; color: #000; }
+.alert.level-red { background: #c8102e; }
+.alert.level-black { background: #000; outline: 1.6vh solid #fff; outline-offset: -1.6vh; }
+.night .alert { opacity: .75; }
+
 /* No connection */
 .banner {
-  position: fixed; left: 0; right: 0; top: 0; padding: 1.4vh 5vw;
+  position: fixed; left: 0; right: 0; top: 0; z-index: 4; padding: 1.4vh 5vw;
   background: #3a2600; color: var(--warn); font-size: 4.6vh; font-weight: 600;
 }
 .offline .now { padding-top: 13vh; }
@@ -140,5 +166,10 @@ p, h1 { margin: 0; }
   .bar { height: 1.2vw; }
   .next { font-size: calc(5.2vw * var(--fit)); }
   .banner, .wake { font-size: 4vw; }
+  .wx { font-size: 5vw; }
+  .prompt { font-size: calc(5.6vw * var(--fit)); }
+  .alert-title { font-size: 11vw; }
+  .alert-from, .alert-hint { font-size: 4vw; }
+  .alert-issued, .alert-strip { font-size: 5.4vw; }
   .offline .now { padding-top: 12vh; }
 }

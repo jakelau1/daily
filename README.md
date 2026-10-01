@@ -104,6 +104,21 @@ removes them). Today's picks clear at 4am. After Planning, tapping the display r
 after 2 untouched minutes. Picks and saved choices stay on the phone only (browser storage), so they never reach
 GitHub, and are lost only if that browser's site data is cleared.
 
+**Weather** (`now/wx.js`), from the same sources and "Happy Valley" setting as the Weather page:
+- *Rain before the dog walk*: from an hour before, "Showers forecast around 10am" (the Observatory's hourly weather
+  forecast) or "Raining in Wan Chai now" (its rain gauges).
+- *Heat or poor air before Movement*: from an hour before, 33°C or more forecast for Happy Valley (or measured now),
+  the Very Hot Weather Warning, the Eastern station's air-quality index at 7 or more ("High" health risk or worse),
+  or a "High" (or worse) forecast.
+- *Ends after sunset*: the dog walk and Movement blocks, using the Observatory's sunset time for the day.
+- *Typhoon signal or rainstorm warning*: takes over the screen with the warning, its issue time, the clock and what's
+  on now. A tap shows the schedule for 10 minutes; a new or changed warning takes over again at once.
+- The current temperature and air-quality index show under the date and turn grey when they're old.
+The warnings, current readings and sunset come straight from the Observatory (it allows this). Its hourly forecast
+and the EPD's air quality don't let other sites' pages read them, so the display uses the copies the recorder saves
+in `weather/data/`. GitHub runs the recorder irregularly (hours apart at times), so those copies can be a few hours
+old; the display checks each reading's own time and ignores or greys out old ones.
+
 On the phone: shifts the layout a little every 3 minutes and dims at night (from bedtime until half an hour before
 the morning routine) to reduce burn-in; asks the browser to keep the screen on; reloads once a day at 4am, but only
 when the site can be reached; greys out a number that hasn't been updated for 2½ minutes; and shows a banner

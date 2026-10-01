@@ -87,7 +87,8 @@
     for (var i = 0; i < r.steps.length; i++) {
       var st = r.steps[i], nx = r.steps[i + 1];
       var end = st.end != null ? st.end : nx ? nx.start : cur.b.end;
-      if (st.start <= min && min < end) return { step: st, end: end, next: nx || null };
+      // "or so" when the step ends at the next step's approximate start ("~10:45pm")
+      if (st.start <= min && min < end) return { step: st, end: end, approxEnd: st.end == null && !!nx && !!nx.approx };
     }
     return null;
   }
@@ -99,6 +100,39 @@
     var h = 0;
     for (var i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
     return HUES[h % HUES.length];
+  }
+
+  // ---------- weather prompts (wx.js) ----------
+  var PROMPT_BEFORE = 60;   // minutes: weather prompts start an hour before an outdoor item
+  // Today's outdoor items: dog-walk routine steps (walk) and Movement blocks (move), in minutes after midnight.
+  function outdoorToday(t) {
+    var items = [];
+    blocks.forEach(function (x) {
+      var b = x.b;
+      if (b.day !== t.day) return;
+      if (b.move) items.push({ move: true, start: b.start, end: b.end, label: nameOf(b) });
+      routines.forEach(function (r) {
+        if (r.name !== b.label) return;
+        r.steps.forEach(function (st, i) {
+          if (!st.walk) return;
+          var nx = r.steps[i + 1];
+          items.push({ walk: true, start: st.start, end: st.end != null ? st.end : nx ? nx.start : b.end, label: st.title });
+        });
+      });
+    });
+    return items.sort(function (a, b) { return a.start - b.start; });
+  }
+  // The weather prompt for the outdoor item that is on now or starts within the hour ('' if none).
+  function promptText(t) {
+    if (!window.NowWx) return '';
+    var items = outdoorToday(t);
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (t.min < it.start - PROMPT_BEFORE || t.min >= it.end) continue;
+      var p = window.NowWx.prompts(it);
+      if (p.length) return (t.min < it.start ? it.label + ' at ' + fmtTime(it.start) + ': ' : '') + p.join(' · ');
+    }
+    return '';
   }
 
   // What the screen should say at a given moment.
@@ -113,7 +147,7 @@
       var pk = pickOf(cur.b);
       m.block = cur.b;
       m.label = pk ? pk.what : cur.b.label;
-      m.sub = step ? step.step.title + ' · until ' + fmtTime(step.end) + (step.step.approx ? ' or so' : '') :
+      m.sub = step ? step.step.title + ' · until ' + fmtTime(step.end) + (step.approxEnd ? ' or so' : '') :
         pk ? cur.b.label : cur.b.open ? 'Not picked yet · tap to choose' : cur.b.note;
       m.left = fmtDur(Math.ceil(cur.e - w)) + ' left';
       m.progress = (w - cur.s) / (cur.e - cur.s);
@@ -133,6 +167,7 @@
       m.floor = '';
       m.next = 'Then ' + nameOf(n.b) + (nf ? ' · floor: ' + nf : '');
     }
+    m.prompt = promptText(t);
     m.night = night.from > night.to ? (t.min >= night.from || t.min < night.to) : (t.min >= night.from && t.min < night.to);
     return m;
   }
@@ -172,9 +207,16 @@
     if (!blocks.length) { set('label', 'No blocks in the schedule'); return t; }
     var m = model(t);
     current = m.block;
-    var before = shown.label + shown.sub + shown.floor + shown.next + shown.left.length;
-    ['kicker', 'label', 'sub', 'left', 'floor', 'next'].forEach(function (k) { set(k, m[k]); });
-    if (shown.label + shown.sub + shown.floor + shown.next + shown.left.length !== before) fit();
+    var before = shown.label + shown.sub + shown.floor + shown.next + shown.prompt + shown.left.length;
+    ['kicker', 'label', 'sub', 'left', 'prompt', 'floor', 'next'].forEach(function (k) { set(k, m[k]); });
+    // Refit when the words change or the screen size does (rotation, keyboard), without relying on resize events.
+    var size = innerWidth + 'x' + innerHeight;
+    if (shown.label + shown.sub + shown.floor + shown.next + shown.prompt + shown.left.length !== before || size !== shown.size) {
+      shown.size = size;
+      fit();
+    }
+    renderWx();
+    renderAlert(hm + (t.min < 720 ? 'am' : 'pm'), m);
     el.bar.style.setProperty('--p', Math.max(0, Math.min(1, m.progress)).toFixed(4));
     if (shown.cat !== m.cat) {
       shown.cat = m.cat;
@@ -183,6 +225,46 @@
     }
     root.classList.toggle('night', m.night);
     return t;
+  }
+  function renderWx() {
+    if (!window.NowWx) return;
+    var s = window.NowWx.status();
+    set('wxTemp', s.temp);
+    set('wxAir', s.air);
+    set('wxProblem', s.problem);
+    el.wxTemp.classList.toggle('old', s.tempOld);
+    el.wxAir.classList.toggle('old', s.airOld);
+  }
+  // Typhoon signal or rainstorm warning: takes over the screen. A tap shows the schedule for 10 minutes;
+  // a new or changed warning takes over again at once.
+  var alertHiddenUntil = 0, alertKey = '';
+  function renderAlert(clock, m) {
+    var list = window.NowWx ? window.NowWx.takeover() : [];
+    var key = list.map(function (a) { return a.title + a.issued; }).join('|');
+    if (key !== alertKey) {
+      alertKey = key;
+      alertHiddenUntil = 0;
+      el.alertTitles.textContent = '';
+      list.forEach(function (a) {
+        var p = document.createElement('p');
+        p.className = 'alert-title';
+        p.textContent = a.title;
+        el.alertTitles.appendChild(p);
+        if (!isFinite(a.issued)) return;
+        var when = document.createElement('p');
+        when.className = 'alert-when';
+        when.textContent = 'Issued ' + fmtTime(hkNow(new Date(a.issued)).min);
+        el.alertTitles.appendChild(when);
+      });
+      el.alert.className = 'alert' + (list.length ? ' level-' + list[0].level : '');
+    }
+    var show = list.length > 0 && Date.now() >= alertHiddenUntil;
+    el.alert.hidden = !show;
+    if (!show) return;
+    var a = list[0];
+    set('alertIssued', a.old ? 'Last checked ' + (a.checked ? fmtTime(hkNow(new Date(a.checked)).min) : 'a while ago') + ', so this may be out of date' : '');
+    set('alertClock', clock);
+    set('alertNow', m.block ? m.label + ' · ' + m.left : m.label);
   }
   function tick() {
     var now = new Date();
@@ -252,7 +334,10 @@
   }
 
   function start(data) {
-    ['clock', 'date', 'kicker', 'label', 'sub', 'left', 'floor', 'next', 'bar', 'banner', 'wake'].forEach(function (id) { el[id] = $(id); });
+    ['clock', 'date', 'kicker', 'label', 'sub', 'left', 'prompt', 'floor', 'next', 'bar', 'banner', 'wake', 'alert'].forEach(function (id) { el[id] = $(id); });
+    el.wxTemp = $('wx-temp'); el.wxAir = $('wx-air'); el.wxProblem = $('wx-problem');
+    el.alertTitles = $('alert-titles'); el.alertIssued = $('alert-issued'); el.alertClock = $('alert-clock'); el.alertNow = $('alert-now');
+    el.alert.addEventListener('click', function () { alertHiddenUntil = Date.now() + 10 * 60e3; render(new Date()); });
     el.clockHm = $('clock-hm');
     el.clockAp = $('clock-ap');
     load(data);
@@ -264,6 +349,7 @@
       fmtTime: fmtTime,
       onChange: function () { render(new Date()); }
     });
+    window.NowWx.init({ fmtTime: fmtTime, onChange: function () { render(new Date()); } });
     $('app').addEventListener('click', function (e) { if (e.target !== el.wake) window.NowPlan.tap(); });
     root.style.setProperty('--stale-after', STALE_AFTER + 's');
     shown.left = '';

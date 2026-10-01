@@ -4,6 +4,8 @@
 //   flags     planning: true on Planning blocks; open: true on the Pastimes and Movement blocks to choose for at
 //             Planning (those whose note mentions planning, so a block that's already decided is left out). Worked
 //             out here, so the public display code never needs the schedule's own words.
+//             move: true on Movement blocks (heat and air-quality prompts, sunset flag); on routine steps,
+//             walk: true on the dog walk (rain prompt, sunset flag).
 //   routines  from the ROUTINES list, with the written times (like "7:15–8am" or "~10:45pm") turned into minutes
 // Nothing is retyped: the lists are read from the file itself. Used by tools/build-now.mjs; run it on its own
 // to check the extraction:  node tools/extract-schedule.mjs   (prints a summary, not the schedule itself)
@@ -65,14 +67,17 @@ export function extract(file = SCHEDULE) {
 
   const routines = box.ROUTINES.map(r => ({
     name: r.name,
-    steps: r.items.map(([time, title, note]) => ({
-      time, ...parseTimeText(time), title, note: note || '', floor: floorOf(note)
-    }))
+    steps: r.items.map(([time, title, note]) => {
+      const step = { time, ...parseTimeText(time), title, note: note || '', floor: floorOf(note) };
+      if (/\bdog\b/i.test(title) && /\bwalk/i.test(title)) step.walk = true;
+      return step;
+    })
   }));
 
   return {
     blocks: blocks.map(b => {
       const out = { id: b.id, day: b.day, start: b.start, end: b.end, cat: b.cat, label: b.label, note: b.note || '' };
+      if (b.cat === 'movement') out.move = true;
       if (b.cat === 'planning') out.planning = true;
       else if (PICK_CATS.has(b.cat) && /\bplanning\b/i.test(b.note || '')) out.open = true;
       return out;
@@ -110,6 +115,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     `(${Object.values(data.cats).filter(c => c.floor).length} with a floor), ` +
     `${data.routines.length} routines with ${data.routines.reduce((n, r) => n + r.steps.length, 0)} steps.`);
   console.log(`${data.blocks.filter(b => b.planning).length} Planning blocks, ${data.blocks.filter(b => b.open).length} blocks to choose for at Planning.`);
+  console.log(`Weather checks: ${data.blocks.filter(b => b.move).length} Movement blocks, ${data.routines.flatMap(r => r.steps).filter(s => s.walk).length} dog walk step(s).`);
   console.log(problems.length ? 'Problems:\n  ' + problems.join('\n  ') : 'No problems found.');
   process.exit(problems.length ? 1 : 0);
 }

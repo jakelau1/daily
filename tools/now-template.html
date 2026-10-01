@@ -6,7 +6,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://data.weather.gov.hk; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
@@ -19,6 +19,7 @@
   <script id="staticrypt-config" type="application/json">/*[|staticrypt_config|]*/0</script>
   <script src="vendor/staticrypt.js" defer></script>
   <script src="plan.js" defer></script>
+  <script src="wx.js" defer></script>
   <script src="now.js" defer></script>
   <script src="unlock.js" defer></script>
 </head>
@@ -38,6 +39,7 @@
     <section class="time">
       <p class="clock live" id="clock"><span id="clock-hm"></span><span class="ap" id="clock-ap"></span></p>
       <p class="date" id="date"></p>
+      <p class="wx"><span class="live" id="wx-temp"></span> <span class="live" id="wx-air"></span> <span class="wx-problem" id="wx-problem"></span></p>
     </section>
     <section class="block">
       <p class="kicker" id="kicker"></p>
@@ -45,12 +47,21 @@
       <p class="sub" id="sub"></p>
       <p class="left live" id="left"></p>
       <div class="bar" id="bar-wrap"><div class="bar-fill" id="bar"></div></div>
+      <p class="prompt" id="prompt"></p>
       <p class="floor" id="floor"></p>
       <p class="next" id="next"></p>
     </section>
     <p class="banner" id="banner" role="status" hidden></p>
     <button class="wake" id="wake" type="button" hidden>Screen may turn off. Tap to keep it on.</button>
   </main>
+
+  <section class="alert" id="alert" role="alert" hidden>
+    <p class="alert-from">Hong Kong Observatory</p>
+    <div class="alert-titles" id="alert-titles"></div>
+    <p class="alert-issued" id="alert-issued"></p>
+    <p class="alert-strip"><span class="live" id="alert-clock"></span> <span id="alert-now"></span></p>
+    <p class="alert-hint">Tap to see the schedule for 10 minutes</p>
+  </section>
 
   <section class="plan" id="plan" aria-labelledby="plan-title" hidden>
     <div class="plan-bar">

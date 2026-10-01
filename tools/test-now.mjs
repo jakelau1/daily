@@ -81,6 +81,58 @@ function expect(w) { // w = minutes since Monday 00:00 Hong Kong time (fractiona
 const MONDAY = Date.UTC(2026, 9, 5, -8); // 00:00 HK
 const at = (day, min) => new Date(MONDAY + (day * DAY + min) * 60e3);
 
+// ---------- made-up weather, in the same formats as the real feeds (so tests never depend on today's weather) ----------
+// WX is changed by the tests; every request is answered from it at that moment. simNow follows the simulated clock,
+// so readings carry believable times.
+const WX = { warn: {}, raining: false, nowTemp: 28, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low',
+  sunset: '18:07', fail: false, airAgeMin: 30 };
+let simNow = MONDAY;
+const hk = ms => { const d = new Date(ms + 8 * 3600e3); return { y: d.getUTCFullYear(), mo: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours(), mi: d.getUTCMinutes(), wd: d.getUTCDay() }; };
+const p2 = n => String(n).padStart(2, '0');
+const hourKey = ms => { const t = hk(ms); return `${t.y}${p2(t.mo)}${p2(t.d)}${p2(t.h)}`; };
+function ocfFixture() {
+  const hours = [];
+  for (let h = -24; h < 72; h++) {
+    const ms = Math.floor(simNow / 3600e3) * 3600e3 + h * 3600e3, k = hourKey(ms);
+    hours.push({ k, temp: WX.temps[k] ?? 28, icon: WX.icons[k] ?? 51 });
+  }
+  const t = hk(simNow - 3600e3), lm = `${t.y}${p2(t.mo)}${p2(t.d)}${p2(t.h)}0000`;
+  return { stations: {
+    HPV: { LastModified: lm, HourlyWeatherForecast: hours.map(x => ({ ForecastHour: x.k, ForecastTemperature: x.temp })) },
+    HKO: { LastModified: lm, HourlyWeatherForecast: hours.map(x => ({ ForecastHour: x.k, ForecastTemperature: x.temp, ForecastWeather: x.icon })) } } };
+}
+function aqhiFixture() {
+  const t = hk(simNow - WX.airAgeMin * 60e3);
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const stamp = `${WD[t.wd]}, ${p2(t.d)} ${MON[t.mo - 1]} ${t.y} ${p2(t.h)}:${p2(t.mi)}`;
+  const item = (name, v, risk) => `<item><title>${name}</title><description><![CDATA[${name} - General Stations: ${v} ${risk} - ${stamp}]]></description></item>`;
+  return {
+    ind: `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>${item('Central/Western', 3, 'Low')}${item('Eastern', WX.aqhi, WX.aqhiRisk)}</channel></rss>`,
+    range: `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item><title>Forecast of Health Risk: </title><description><![CDATA[<p>&lt;Today A.M.&gt;<p>General Stations: ${WX.forecast}</p><p>Roadside Stations: ${WX.forecast}</p></p><p>&lt;Today P.M.&gt;<p>General Stations: ${WX.forecast}</p><p>Roadside Stations: ${WX.forecast}</p></p>]]></description></item></channel></rss>`
+  };
+}
+async function newContext() {
+  const c = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+  const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+  await c.route('https://data.weather.gov.hk/**', route => {
+    if (WX.fail) return route.abort('internetdisconnected');
+    const u = new URL(route.request().url()), type = u.searchParams.get('dataType');
+    const t = hk(simNow);
+    if (type === 'warnsum') return json(route, WX.warn);
+    if (type === 'rhrread') return json(route, {
+      temperature: { recordTime: `${t.y}-${p2(t.mo)}-${p2(t.d)}T${p2(t.h)}:00:00+08:00`, data: [{ place: 'Happy Valley', value: WX.nowTemp, unit: 'C' }] },
+      rainfall: { data: [{ place: 'Wan Chai', max: WX.raining ? 6 : 0, unit: 'mm', main: 'FALSE' }] } });
+    if (type === 'SRS') {
+      const days = new Date(Date.UTC(t.y, t.mo, 0)).getUTCDate();
+      return json(route, { fields: ['YYYY-MM-DD', 'RISE', 'TRAN.', 'SET'], data: Array.from({ length: days }, (_, i) => [`${t.y}-${p2(t.mo)}-${p2(i + 1)}`, '06:16', '12:12', WX.sunset]) });
+    }
+    return route.fulfill({ status: 404, body: '' });
+  });
+  await c.route('**/daily/weather/data/ocf.json*', route => json(route, ocfFixture()));
+  await c.route('**/daily/weather/data/aqhi.json*', route => json(route, aqhiFixture()));
+  return c;
+}
+
 let failures = 0, checks = 0;
 const fail = msg => { failures++; console.log('  FAIL ' + msg); };
 
@@ -93,6 +145,7 @@ async function newPage(context, start, viewport = { width: 800, height: 360 }) {
   await page.addInitScript(() => {
     document.addEventListener('securitypolicyviolation', e => console.error(`CSP blocked ${e.violatedDirective}: ${e.blockedURI}`));
   });
+  simNow = start.getTime();
   await page.clock.install({ time: start });
   await page.goto(BASE);
   return page;
@@ -108,11 +161,13 @@ async function screen(page) {
     const t = id => { const e = document.getElementById(id); return e.hidden ? '' : e.textContent; };
     const over = [...document.querySelectorAll('.time, .block')].filter(e => e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1).map(e => e.className);
     if (document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth) over.push('page');
-    return { label: t('label'), left: t('left'), next: t('next'), kicker: t('kicker'), floor: t('floor'), clock: t('clock'), over, now: Date.now() };
+    return { label: t('label'), left: t('left'), next: t('next'), kicker: t('kicker'), floor: t('floor'), clock: t('clock'),
+      prompt: t('prompt'), alert: !document.getElementById('alert').hidden, over, now: Date.now() };
   });
 }
 async function goTo(page, day, min, sec = 0) {
-  await page.clock.setSystemTime(new Date(at(day, min).getTime() + sec * 1000));
+  simNow = at(day, min).getTime() + sec * 1000;
+  await page.clock.setSystemTime(new Date(simNow));
   await page.clock.runFor(1100);
   return screen(page);
 }
@@ -122,11 +177,12 @@ function compare(s, where) {
   const e = expect(w % WEEK);
   for (const k of ['label', 'left', 'next']) if (s[k] !== e[k]) return fail(`${where}: ${k} shows "${s[k]}", expected "${e[k]}"`);
   if (s.over.length) fail(`${where}: text overflows (${s.over.join(', ')})`);
+  if (s.alert) fail(`${where}: a warning took over the screen with no warning in force`);
 }
 
 // ---------- 1. wrong password, then unlock with "Remember me" ----------
 console.log('Unlocking');
-const ctx = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+const ctx = await newContext();
 let page = await newPage(ctx, at(0, 12 * 60));
 await page.locator('#pw').waitFor();
 await page.screenshot({ path: `${SHOTS}/01-locked.png` });
@@ -239,7 +295,7 @@ await page.close();
 // ---------- 5b. planning picker (stage 2), in a fresh browser profile ----------
 console.log('Planning picker');
 {
-  const ctx2 = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+  const ctx2 = await newContext();
   const planOf = d => DATA.blocks.find(b => b.planning && b.day === d);
   const openOn = d => DATA.blocks.filter(b => b.open && b.day === d).sort((a, b) => a.start - b.start);
   const check = (ok, msg) => { checks++; if (!ok) fail(msg); };
@@ -342,6 +398,102 @@ console.log('Planning picker');
     await page.close();
   }
   await ctx2.close();
+}
+
+// ---------- 5c. weather prompts and warnings (stage 3), with made-up weather ----------
+console.log('Weather prompts and warnings');
+{
+  const check = (ok, msg) => { checks++; if (!ok) fail(msg); };
+  const ctx3 = await newContext();
+  const walk = DATA.routines.flatMap(r => r.steps).find(st => st.walk);
+  const move = DATA.blocks.filter(b => b.move && b.day === 0)[0];
+  const d0 = '20261005';                                   // Monday 5 October 2026, as the forecast's hour keys
+  // Jump forward to a time, let the once-a-minute check fetch every source that is due, then redraw.
+  async function wxAt(page, day, min) {
+    simNow = at(day, min).getTime();
+    await page.clock.setSystemTime(new Date(simNow - 61e3));
+    await page.clock.runFor(61e3);
+    await page.waitForTimeout(700);
+    await page.clock.runFor(1100);
+    return screen(page);
+  }
+  const has = (s, text) => s.prompt.includes(text);
+  Object.assign(WX, { warn: {}, raining: false, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low', fail: false, airAgeMin: 30 });
+
+  page = await newPage(ctx3, at(0, 8 * 60));
+  await unlock(page);
+  await page.locator('#app').waitFor({ timeout: 30000 });
+  check(!!walk && !!move, 'expected a dog walk step and a Monday Movement block');
+
+  WX.icons[d0 + p2(walk.start / 60)] = 63;                  // showers in the walk's hour
+  let s = await wxAt(page, 0, walk.start - 40);
+  check(has(s, `Showers forecast around ${fmtT(walk.start)}`) && has(s, `${walk.title} at ${fmtT(walk.start)}:`),
+    `rain prompt before the walk: "${s.prompt}"`);
+  await goTo(page, 0, walk.start - 15);
+  await page.screenshot({ path: `${SHOTS}/18-rain-before-walk.png` });
+  WX.raining = true;
+  s = await wxAt(page, 0, walk.start + 20);
+  check(s.prompt === 'Raining in Wan Chai now', `rain during the walk: "${s.prompt}"`);
+  WX.raining = false; WX.icons = {};
+  s = await wxAt(page, 0, walk.end + 40);
+  check(s.prompt === '', `no prompt after the walk: "${s.prompt}"`);
+
+  WX.temps[d0 + p2(move.start / 60)] = 34;
+  s = await wxAt(page, 0, move.start - 45);
+  check(has(s, `Hot: 34° forecast at ${fmtT(move.start)}`), `heat prompt before Movement: "${s.prompt}"`);
+  check(has(s, 'Ends after sunset (6:07pm)'), `sunset flag: "${s.prompt}"`);
+  await page.screenshot({ path: `${SHOTS}/19-heat-before-movement.png` });
+  await page.setViewportSize({ width: 640, height: 360 });
+  s = await goTo(page, 0, move.start - 44);
+  check(!s.over.length, `long weather prompt overflows the small screen (${s.over.join(', ')}; fit ${await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--fit'))})`);
+  await page.setViewportSize({ width: 800, height: 360 });
+  WX.temps = {}; WX.aqhi = 8; WX.aqhiRisk = 'Very High';
+  s = await wxAt(page, 0, move.start - 5);
+  check(has(s, 'Air quality 8 (Very High) at Eastern') && !has(s, 'Hot'), `poor air prompt: "${s.prompt}"`);
+  WX.aqhi = 3; WX.aqhiRisk = 'Low'; WX.forecast = 'Moderate to High';
+  s = await wxAt(page, 0, move.start + 30);
+  check(has(s, 'Air quality forecast: Moderate to High') && !has(s, ' at ' + fmtT(move.start) + ':'), `air forecast prompt during the block: "${s.prompt}"`);
+  WX.forecast = 'Low';
+  s = await wxAt(page, 0, move.end + 31);
+  check(s.prompt === '', `no prompt after Movement: "${s.prompt}"`);
+  const problemsBefore = page.problems.slice();
+
+  // Typhoon signal: takes over; a tap shows the schedule for 10 minutes; a rainstorm warning on top; cancelled.
+  WX.warn = { WTCSGNL: { name: 'Tropical Cyclone Warning Signal', code: 'TC8NE', actionCode: 'ISSUE', issueTime: '2026-10-05T19:40:00+08:00' } };
+  s = await wxAt(page, 0, 20 * 60 + 15);
+  check(s.alert && (await page.locator('.alert-title').first().textContent()) === 'Typhoon Signal No. 8 (north-east)', 'typhoon signal did not take over the screen');
+  check(/Issued 7:40pm/.test(await page.locator('#alert-titles').textContent()), 'issue time missing');
+  check((await page.locator('#alert-now').textContent()).length > 0, 'takeover should still show what is on now');
+  await page.screenshot({ path: `${SHOTS}/20-typhoon-8.png` });
+  await page.click('#alert');
+  s = await goTo(page, 0, 20 * 60 + 16);
+  check(!s.alert, 'tap did not show the schedule');
+  await page.clock.runFor(10 * 60e3);
+  s = await goTo(page, 0, 20 * 60 + 27);
+  check(s.alert, 'takeover did not come back after 10 minutes');
+  WX.warn.WRAIN = { name: 'Rainstorm Warning Signal', code: 'WRAINB', actionCode: 'ISSUE', issueTime: '2026-10-05T20:30:00+08:00' };
+  s = await wxAt(page, 0, 21 * 60);
+  check(s.alert && /^Black Rainstorm Warning/.test(await page.locator('#alert-titles').textContent()), 'black rainstorm warning not shown first');
+  check(/Issued 8:30pm.*Issued 7:40pm/.test(await page.locator('#alert-titles').textContent()), 'each warning should show its own issue time');
+  const edge = await page.evaluate(() => { const r = document.getElementById('alert').getBoundingClientRect(); return r.left === 0 && r.top === 0 && r.right === innerWidth && r.bottom === innerHeight; });
+  check(edge, 'the warning panel must cover the whole screen, also while shifted for burn-in');
+  check(await page.locator('#alert.level-black').count() === 1, 'black rainstorm colours missing');
+  await page.screenshot({ path: `${SHOTS}/21-black-rain-and-typhoon.png` });
+  WX.warn = {};
+  s = await wxAt(page, 0, 21 * 60 + 40);
+  check(!s.alert, 'takeover stayed after the warnings were cancelled');
+  check(!problemsBefore.length, 'weather: ' + problemsBefore.join(' | '));
+
+  // Weather feed down and an old air-quality copy: readings grey out, and it says so.
+  WX.fail = true; WX.airAgeMin = 5 * 60;
+  s = await wxAt(page, 0, 23 * 60 + 30);
+  check(await page.locator('#wx-temp.old').count() === 1, 'temperature not greyed when the readings stopped');
+  check(await page.locator('#wx-air.old').count() === 1, 'air quality not greyed when the copy was hours old');
+  check((await page.locator('#wx-problem').textContent()) === 'Weather unavailable', 'no notice that the weather is unavailable');
+  await page.screenshot({ path: `${SHOTS}/22-weather-old.png` });
+  WX.fail = false; WX.airAgeMin = 30;
+  await page.close();
+  await ctx3.close();
 }
 
 // ---------- 6. screenshots of typical moments (landscape 800×360, and portrait) ----------

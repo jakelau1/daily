@@ -51,6 +51,14 @@ report(await page.locator('#lock').isHidden(), 'unlocked by itself after a reloa
 await page.waitForTimeout(4000);
 report(!!(await page.evaluate(() => window.NowPlan)), 'planning picker code loaded');
 report(await page.locator('#banner').isHidden(), 'no "no connection" banner');
+const wx = await page.evaluate(() => ({ temp: document.getElementById('wx-temp').textContent, tempOld: document.getElementById('wx-temp').classList.contains('old'),
+  air: document.getElementById('wx-air').textContent, airOld: document.getElementById('wx-air').classList.contains('old'),
+  problem: document.getElementById('wx-problem').textContent, prompt: document.getElementById('prompt').textContent,
+  alert: !document.getElementById('alert').hidden }));
+report(!!wx.temp && !wx.tempOld, `current temperature shown and fresh: "${wx.temp}"`);
+report(!!wx.air, `air quality shown: "${wx.air}"${wx.airOld ? ' (greyed: the saved copy is more than 4 hours old)' : ''}`);
+report(!wx.problem, 'no "Weather unavailable" notice');
+console.log(`      prompt now: "${wx.prompt}"; warning takeover: ${wx.alert ? 'yes' : 'no'}`);
 for (const [h, s] of Object.entries(hosts)) report(s.every(x => x < 400), `${h}: ${s.length} request(s), status ${[...new Set(s)].join(', ')}`);
 report(!errors.length, 'no policy violations, script errors or failed requests' + (errors.length ? ':\n      ' + errors.join('\n      ') : ''));
 fs.mkdirSync(path.join(ROOT, 'build', 'screenshots'), { recursive: true });
