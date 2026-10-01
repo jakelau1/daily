@@ -598,6 +598,68 @@ console.log('Travel and leave-by');
   await ctx4.close();
 }
 
+// ---------- 5e. weather relay: used first; the recorder's copies only when it can't be reached ----------
+console.log('Weather relay');
+{
+  const check = (ok, msg) => { checks++; if (!ok) fail(msg); };
+  const RELAY = 'https://relay.test';
+  const ctxR = await newContext();
+  let relayUp = true, copiesUp = true;
+  const seen = [];
+  // Serve the page as the build would with relay/url.txt set (data-relay and the policy entry).
+  await ctxR.route(/\/daily\/now\/(index\.html)?(\?.*)?$/, async route => {
+    const res = await route.fetch();
+    const html = (await res.text()).replace('data-relay=""', `data-relay="${RELAY}"`)
+      .replace("https://data.weather.gov.hk;", `https://data.weather.gov.hk ${RELAY};`);
+    return route.fulfill({ response: res, body: html });
+  });
+  const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+  await ctxR.route(`${RELAY}/**`, route => {
+    const name = new URL(route.request().url()).pathname.slice(1);
+    seen.push('relay ' + name);
+    if (!relayUp) return route.abort('connectionrefused');
+    if (name === 'ocf') return json(route, ocfFixture());
+    if (name === 'aqhi') return json(route, aqhiFixture());
+    return route.fallback();
+  });
+  for (const name of ['ocf', 'aqhi', 'nowcast']) {
+    await ctxR.route(`**/daily/weather/data/${name}.json*`, route => {
+      seen.push('copy ' + name);
+      return copiesUp ? route.fallback() : route.fulfill({ status: 404, body: '' });
+    });
+  }
+  // The relay's nowcast answer comes from the same made-up weather as the copy's.
+  await ctxR.route(`${RELAY}/nowcast`, async route => {
+    seen.push('relay nowcast');
+    if (!relayUp) return route.abort('connectionrefused');
+    const up = Math.floor((simNow - WX.nowcast.ageMin * 60e3) / 60e3) * 60e3;
+    const iso = ms => { const t = hk(ms); return `${t.y}-${p2(t.mo)}-${p2(t.d)}T${p2(t.h)}:${p2(t.mi)}:00+08:00`; };
+    return json(route, { updated: iso(up), lat: 22.268, lon: 114.182, periods: WX.nowcast.mm.map((mm, i) => ({ end: iso(up + (i + 1) * 30 * 60e3), mm })) });
+  });
+  Object.assign(WX, { warn: {}, raining: false, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low', fail: false, airAgeMin: 30, nowcast: { ageMin: 5, mm: [0, 1.5, 0, 0] } });
+  const walk = DATA.routines.flatMap(r => r.steps).find(st => st.walk);
+  copiesUp = false;                                         // only the relay can answer
+  page = await newPage(ctxR, at(0, walk.start - 35));
+  await unlock(page);
+  await page.locator('#app').waitFor({ timeout: 30000 });
+  await page.waitForTimeout(1500);
+  let s = await goTo(page, 0, walk.start - 35, 2);
+  check(seen.includes('relay nowcast') && seen.includes('relay ocf') && seen.includes('relay aqhi'), 'the display did not ask the relay: ' + seen.join(', '));
+  check(s.prompt.includes('Rain expected from about'), `rain prompt from the relay's nowcast: "${s.prompt}"`);
+  check(!(await page.locator('#wx-air.old').count()), 'air quality from the relay should be fresh');
+  check(!page.problems.some(p => /CSP/.test(p)), 'the security policy blocked the relay: ' + page.problems.join(' | '));
+  await page.close();
+  relayUp = false; copiesUp = true; seen.length = 0;         // relay down: the copies are used instead
+  page = await newPage(ctxR, at(0, walk.start - 35));
+  await page.locator('#app').waitFor({ timeout: 30000 });
+  await page.waitForTimeout(1500);
+  s = await goTo(page, 0, walk.start - 35, 2);
+  check(seen.includes('copy nowcast') && seen.includes('copy ocf') && seen.includes('copy aqhi'), 'the copies were not used when the relay was down: ' + seen.join(', '));
+  check(s.prompt.includes('Rain expected from about'), `rain prompt from the copy when the relay is down: "${s.prompt}"`);
+  await page.close();
+  await ctxR.close();
+}
+
 // ---------- 6. screenshots of typical moments (landscape 800×360, and portrait) ----------
 console.log('Screenshots');
 const shots = [];

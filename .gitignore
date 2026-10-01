@@ -5,3 +5,5 @@ private/
 # Unencrypted build output stays on this computer only
 build/
 node_modules/
+# Cloudflare wrangler's local working files
+.wrangler/

@@ -40,7 +40,7 @@ const data = extract();
 const problems = check(data);
 if (problems.length) stop('the schedule has problems:\n  ' + problems.join('\n  '));
 const payload = JSON.stringify(data);
-for (const d of ['payload', 'encrypted', 'decrypted', 'current', 'current-decrypted']) fs.rmSync(r('build/' + d), { recursive: true, force: true }); // not screenshots/
+for (const d of ['payload', 'encrypted', 'decrypted', 'current', 'current-decrypted', 'template']) fs.rmSync(r('build/' + d), { recursive: true, force: true }); // not screenshots/
 fs.mkdirSync(r('build/payload'), { recursive: true });
 fs.writeFileSync(r('build/payload/index.html'), payload); // StatiCrypt only encrypts .html files; the content is JSON
 
@@ -54,10 +54,20 @@ fs.writeFileSync(r('now/vendor/staticrypt.js'),
   `window.staticryptInitiator = ${buildStaticryptJS()};\n`);
 fs.copyFileSync(require.resolve('staticrypt/LICENSE'), r('now/vendor/STATICRYPT-LICENSE.txt'));
 
+// The page template, with the weather relay's address (relay/url.txt, if the relay has been deployed) filled in.
+let relay = '';
+if (fs.existsSync(r('relay/url.txt'))) {
+  relay = fs.readFileSync(r('relay/url.txt'), 'utf8').trim().replace(/\/+$/, '');
+  if (!/^https:\/\/[a-z0-9.-]+$/i.test(relay)) stop('relay/url.txt should hold just the relay address, like https://name.example.workers.dev');
+}
+fs.mkdirSync(r('build/template'), { recursive: true });
+fs.writeFileSync(r('build/template/now.html'), fs.readFileSync(r('tools/now-template.html'), 'utf8')
+  .replaceAll('{{RELAY_URL}}', relay).replaceAll('{{RELAY_CSP}}', relay ? ' ' + relay : ''));
+
 // 2. Encrypt. The salt is kept in .staticrypt.json (not secret); a new salt would log out every device.
 const hadSalt = fs.existsSync(r('.staticrypt.json'));
 const saltBefore = hadSalt ? JSON.parse(fs.readFileSync(r('.staticrypt.json'), 'utf8')).salt : null;
-run(process.execPath, [CLI, 'build/payload/index.html', '-d', 'build/encrypted', '-t', 'tools/now-template.html',
+run(process.execPath, [CLI, 'build/payload/index.html', '-d', 'build/encrypted', '-t', 'build/template/now.html',
   '--remember', '0', '--template-title', 'Now', '--config', '.staticrypt.json'], true);
 const salt = JSON.parse(fs.readFileSync(r('.staticrypt.json'), 'utf8')).salt;
 if (hadSalt && salt !== saltBefore) stop('the salt changed, which would log out every device. Restore .staticrypt.json from git.');
@@ -100,7 +110,7 @@ if (changed) console.log(`Encrypted page rebuilt: now/index.html (${data.blocks.
   '\nChecked: no readable schedule text, no inline code, and it decrypts back to the same data.');
 
 if (publish) {
-  run('git', ['add', 'now/index.html', '.staticrypt.json']);
+  run('git', ['add', 'now/index.html', '.staticrypt.json', ...(fs.existsSync(r('relay/url.txt')) ? ['relay/url.txt'] : [])]);
   const staged = spawnSync('git', ['diff', '--cached', '--quiet'], { cwd: ROOT }).status !== 0;
   if (!staged) { console.log('Nothing new to publish.'); process.exit(0); }
   run('git', ['commit', '-m', 'Update the encrypted schedule']); // the privacy check runs here too

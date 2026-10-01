@@ -1,0 +1,10 @@
+# Cloudflare Workers settings for the weather relay (see relay/worker.js and the README).
+# Deploy from the project folder:  npx wrangler deploy --config relay/wrangler.toml
+name = "daily-weather-relay"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+# Pages allowed to use the relay (comma-separated).
+ALLOWED_ORIGINS = "https://jakelau1.github.io"

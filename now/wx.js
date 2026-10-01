@@ -2,16 +2,23 @@
 //   warnings            Observatory warning summary (live)            -> typhoon / rainstorm takeover, heat warning
 //   current readings    Observatory hourly readings (live)            -> Happy Valley temperature, Wan Chai rainfall
 //   sunset              Observatory sunrise/sunset table (live)       -> "ends after sunset"
-//   rain nowcast        the recorder's copy, ../weather/data/nowcast.json -> rain in the next 2 hours at Happy Valley
-//   hourly forecast     the recorder's copy, ../weather/data/ocf.json     -> rain and temperature by hour
-//   air quality         the recorder's copy, ../weather/data/aqhi.json    -> Eastern station and the forecast
-// The nowcast, forecast and air-quality servers don't let other web pages read them (checked: no CORS permission),
-// so the copies saved every 10 minutes by .github/workflows/record-weather.yml are used. GitHub can run that
-// recorder late, so each reading keeps its own time and is ignored or greyed out once it is old.
+//   rain nowcast        weather relay /nowcast, else ../weather/data/nowcast.json -> rain in the next 2 hours at Happy Valley
+//   hourly forecast     weather relay /ocf,     else ../weather/data/ocf.json     -> rain and temperature by hour
+//   air quality         weather relay /aqhi,    else ../weather/data/aqhi.json    -> Eastern station and the forecast
+// The nowcast, forecast and air-quality servers don't let other web pages read them (checked: no CORS permission).
+// The weather relay (relay/worker.js, on Cloudflare; its address is in <html data-relay>) fetches them when asked.
+// If it can't be reached, the copies saved by the recorder (.github/workflows/record-weather.yml) are used; GitHub
+// runs that recorder hours late, so each reading keeps its own time and is ignored or greyed out once it is old.
 (function () {
   'use strict';
   var API = 'https://data.weather.gov.hk/weatherAPI/opendata/';
   var COPY = '../weather/data/';
+  var RELAY = document.documentElement.getAttribute('data-relay') || '';
+  // The relay first, then the recorder's copy.
+  function relayed(name) {
+    if (!RELAY) return get(COPY + name + '.json');
+    return get(RELAY + '/' + name).catch(function () { return get(COPY + name + '.json'); });
+  }
   var TEMP_PLACE = 'Happy Valley', RAIN_PLACE = 'Wan Chai', AIR_STATION = 'Eastern';
   var FORECAST_POINTS = ['HPV', 'HKP', 'HKO'];     // as the Weather page: first point that forecasts each thing
   var RAIN_ICONS = [53, 54, 62, 63, 64, 65];       // Observatory weather icons with showers or rain (as the Weather page)
@@ -55,16 +62,16 @@
       });
     },
     nowcast: function () {
-      return get(COPY + 'nowcast.json').then(function (j) { return { data: j, time: Date.parse(j && j.updated) }; });
+      return relayed('nowcast').then(function (j) { return { data: j, time: Date.parse(j && j.updated) }; });
     },
     ocf: function () {
-      return get(COPY + 'ocf.json').then(function (j) {
+      return relayed('ocf').then(function (j) {
         var times = FORECAST_POINTS.map(function (c) { var s = j.stations && j.stations[c]; return s ? compact(s.LastModified) : NaN; }).filter(isFinite);
         return { data: j, time: times.length ? Math.max.apply(null, times) : NaN };
       });
     },
     aqhi: function () {
-      return get(COPY + 'aqhi.json').then(function (j) {
+      return relayed('aqhi').then(function (j) {
         var st = airStation(j);
         return { data: j, time: st ? st.time : NaN };
       });

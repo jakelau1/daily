@@ -4,11 +4,13 @@
   "description": "Build tools for the encrypted 'now' display. The site itself has no build step.",
   "devDependencies": {
     "playwright-core": "^1.63.0",
-    "staticrypt": "3.5.4"
+    "staticrypt": "3.5.4",
+    "wrangler": "^4.145.0"
   },
   "scripts": {
     "now": "node tools/build-now.mjs",
     "test-now": "node tools/test-now.mjs",
-    "check-live": "node tools/check-live.mjs"
+    "check-live": "node tools/check-live.mjs",
+    "relay-deploy": "node tools/deploy-relay.mjs"
   }
 }

@@ -124,11 +124,28 @@ down, not coming home. All of this is saved in the phone's browser only.
   on now. A tap shows the schedule for 10 minutes; a new or changed warning takes over again at once.
 - The current temperature and air-quality index show under the date and turn grey when they're old.
 The warnings, current readings and sunset come straight from the Observatory (it allows this). Its rain nowcast and
-hourly forecast and the EPD's air quality don't let other sites' pages read them, so the display uses the copies the
-recorder saves in `weather/data/` every 10 minutes (`nowcast.json` holds just the Happy Valley grid point). Rain
-before the walk uses the nowcast while it's fresh (under 45 minutes old) and the hourly forecast otherwise. GitHub can
-run the recorder late, so the display checks each reading's own time and ignores or greys out old ones (forecast
-after 3 hours, air quality after 2).
+hourly forecast and the EPD's air quality don't let other sites' pages read them, so the display gets them from the
+**weather relay** (below), and from the recorder's copies in `weather/data/` only if the relay can't be reached. Rain
+before the walk uses the nowcast while it's fresh (under 45 minutes old) and the hourly forecast otherwise. The display
+checks each reading's own time and ignores or greys out old ones (forecast after 3 hours, air quality after 2).
+
+### Weather relay (`relay/`)
+GitHub ran the recorder far less often than scheduled (main-hk: 7 of about 70 scheduled runs over 36 hours; this
+repository: none in its first 5 hours), so its copies can be hours old. The relay is a tiny program on Cloudflare
+Workers (free plan) that fetches the official files when the display asks, keeps each answer for a few minutes, and
+answers only pages on `https://jakelau1.github.io`. It answers in the same shapes as the recorder's copies:
+`/ocf`, `/aqhi`, `/nowcast`. No schedule data passes through it; Cloudflare sees each request's time and the phone's
+internet address.
+
+Setting it up (once, at the computer):
+1. Create a free account at cloudflare.com.
+2. `npx wrangler login` (opens the browser to allow access).
+3. `npm run relay-deploy` (deploys it, checks it answers, saves its address in `relay/url.txt`, rebuilds the page).
+   The first time, Cloudflare may ask you to choose a `workers.dev` name.
+4. `npm run now -- --publish`.
+
+Until then `relay/url.txt` doesn't exist and the display uses the recorder's copies. To test the relay on this
+computer: `npx wrangler dev --config relay/wrangler.toml --var ALLOWED_ORIGINS:http://127.0.0.1:8765`.
 
 On the phone: shifts the layout a little every 3 minutes and dims at night (from bedtime until half an hour before
 the morning routine) to reduce burn-in; asks the browser to keep the screen on; reloads once a day at 4am, but only

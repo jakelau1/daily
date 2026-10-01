@@ -2,11 +2,12 @@
 <!-- StatiCrypt template for now/index.html, used by tools/build-now.mjs. Don't edit now/index.html itself.
      Unlike StatiCrypt's own template, this one has no inline script or style, so the page keeps the site's strict
      Content-Security-Policy: the encrypted data sits in a JSON block (which never runs), and the code that
-     unlocks it is in now/unlock.js. Keep schedule content out of this file: it is published unencrypted. -->
-<html lang="en">
+     unlocks it is in now/unlock.js. Keep schedule content out of this file: it is published unencrypted.
+     {{RELAY_URL}} and {{RELAY_CSP}} are filled in by the build from relay/url.txt (the weather relay's address). -->
+<html lang="en" data-relay="{{RELAY_URL}}">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://data.weather.gov.hk; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://data.weather.gov.hk{{RELAY_CSP}}; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="robots" content="noindex">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
