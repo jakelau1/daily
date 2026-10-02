@@ -417,6 +417,7 @@
       onChange: function () { render(new Date()); }
     });
     window.NowWx.init({
+      places: data.feeds || null,
       fmtTime: fmtTime,
       // today's minute -> ms, and ms -> minutes after midnight (Hong Kong time)
       at: function (min) { var t = hkNow(new Date()); return Date.now() - ((t.min - min) * 60 + t.sec) * 1000; },

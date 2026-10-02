@@ -87,9 +87,9 @@ for (const code of ocfNew ? OCF_CODES : []) {
 }
 await writeIfChanged(ocfFile, ocf);
 
-// 3) Rain nowcast for the next 2 hours at the grid point nearest Happy Valley (the "now" display's rain prompt).
+// 3) Rain nowcast for the next 2 hours at one central grid point (a rough fallback copy for the "now" display; the Android app reads the file itself).
 //    The Observatory's file covers the whole region (about 2.7 MB); only four numbers are kept.
-const NOWCAST_AT = { lat: 22.2706, lon: 114.184 };   // Happy Valley weather station
+const NOWCAST_AT = { lat: 22.3019, lon: 114.1742 };  // the Observatory's headquarters
 try {
   const rows = (await text('https://data.weather.gov.hk/weatherAPI/hko_data/F3/Gridded_rainfall_nowcast.csv')).trim().split(/\r?\n/).slice(1)
     .map(l => l.split(',')).filter(r => r.length >= 5);

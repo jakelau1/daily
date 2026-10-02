@@ -185,7 +185,7 @@ await page.ev("window.NowStorage.removeItem('test.restored'); window.AppStore.fl
 
 console.log('Feeds that block web pages, read inside the app');
 const feeds = {
-  'hourly forecast files (maps.weather.gov.hk)': ['https://maps.weather.gov.hk/ocf/dat/HPV.xml', t => !!JSON.parse(t).HourlyWeatherForecast],
+  'hourly forecast files (maps.weather.gov.hk)': ['https://maps.weather.gov.hk/ocf/dat/HKO.xml', t => !!JSON.parse(t).HourlyWeatherForecast],
   'air quality (www.aqhi.gov.hk)': ['https://www.aqhi.gov.hk/epd/ddata/html/out/aqhi_ind_rss_Eng.xml', t => /<rss/.test(t)],
   'gridded rain forecast (data.weather.gov.hk/hko_data)': ['https://data.weather.gov.hk/weatherAPI/hko_data/F3/Gridded_rainfall_nowcast.csv', t => t.split('\n').length > 100],
   'public holidays (www.1823.gov.hk)': ['https://www.1823.gov.hk/common/ical/en.json', t => /vcalendar/.test(t)],

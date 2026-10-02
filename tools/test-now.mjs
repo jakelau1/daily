@@ -20,6 +20,9 @@ const SHOTS = path.join(ROOT, 'build', 'screenshots');
 const PORT = 8765, BASE = `http://127.0.0.1:${PORT}/daily/now/`;
 const PASSWORD = (fs.readFileSync(path.join(ROOT, '.env'), 'utf8').match(/^STATICRYPT_PASSWORD=(.*)$/m) || [])[1];
 const DATA = JSON.parse(fs.readFileSync(path.join(ROOT, 'build', 'payload', 'index.html'), 'utf8'));
+// The weather places come from the private data bundled with the schedule (data.feeds); fixtures use the same ones.
+const FEEDS = { tempPlace: 'Hong Kong Observatory', rainPlace: 'Central & Western District', airStation: 'Central/Western', forecastPoints: ['HKO'], ...(DATA.feeds || {}) };
+const FP_FIRST = FEEDS.forecastPoints[0], FP_LAST = FEEDS.forecastPoints[FEEDS.forecastPoints.length - 1];
 if (!PASSWORD) throw new Error('No password in .env');
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -98,8 +101,8 @@ function ocfFixture() {
   }
   const t = hk(simNow - 3600e3), lm = `${t.y}${p2(t.mo)}${p2(t.d)}${p2(t.h)}0000`;
   return { stations: {
-    HPV: { LastModified: lm, HourlyWeatherForecast: hours.map(x => ({ ForecastHour: x.k, ForecastTemperature: x.temp })) },
-    HKO: { LastModified: lm, HourlyWeatherForecast: hours.map(x => ({ ForecastHour: x.k, ForecastTemperature: x.temp, ForecastWeather: x.icon })) } } };
+    [FP_FIRST]: { LastModified: lm, HourlyWeatherForecast: hours.map(x => ({ ForecastHour: x.k, ForecastTemperature: x.temp })) },
+    [FP_LAST]: { LastModified: lm, HourlyWeatherForecast: hours.map(x => ({ ForecastHour: x.k, ForecastTemperature: x.temp, ForecastWeather: x.icon })) } } };
 }
 function aqhiFixture() {
   const t = hk(simNow - WX.airAgeMin * 60e3);
@@ -107,7 +110,7 @@ function aqhiFixture() {
   const stamp = `${WD[t.wd]}, ${p2(t.d)} ${MON[t.mo - 1]} ${t.y} ${p2(t.h)}:${p2(t.mi)}`;
   const item = (name, v, risk) => `<item><title>${name}</title><description><![CDATA[${name} - General Stations: ${v} ${risk} - ${stamp}]]></description></item>`;
   return {
-    ind: `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>${item('Central/Western', 3, 'Low')}${item('Eastern', WX.aqhi, WX.aqhiRisk)}</channel></rss>`,
+    ind: `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>${item('Another station', 3, 'Low')}${item(FEEDS.airStation, WX.aqhi, WX.aqhiRisk)}</channel></rss>`,
     range: `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item><title>Forecast of Health Risk: </title><description><![CDATA[<p>&lt;Today A.M.&gt;<p>General Stations: ${WX.forecast}</p><p>Roadside Stations: ${WX.forecast}</p></p><p>&lt;Today P.M.&gt;<p>General Stations: ${WX.forecast}</p><p>Roadside Stations: ${WX.forecast}</p></p>]]></description></item></channel></rss>`
   };
 }
@@ -134,8 +137,8 @@ async function newContext() {
     const t = hk(simNow);
     if (type === 'warnsum') return json(route, WX.warn);
     if (type === 'rhrread') return json(route, {
-      temperature: { recordTime: `${t.y}-${p2(t.mo)}-${p2(t.d)}T${p2(t.h)}:00:00+08:00`, data: [{ place: 'Happy Valley', value: WX.nowTemp, unit: 'C' }] },
-      rainfall: { data: [{ place: 'Wan Chai', max: WX.raining ? 6 : 0, unit: 'mm', main: 'FALSE' }] } });
+      temperature: { recordTime: `${t.y}-${p2(t.mo)}-${p2(t.d)}T${p2(t.h)}:00:00+08:00`, data: [{ place: FEEDS.tempPlace, value: WX.nowTemp, unit: 'C' }] },
+      rainfall: { data: [{ place: FEEDS.rainPlace, max: WX.raining ? 6 : 0, unit: 'mm', main: 'FALSE' }] } });
     if (type === 'SRS') {
       const days = new Date(Date.UTC(t.y, t.mo, 0)).getUTCDate();
       return json(route, { fields: ['YYYY-MM-DD', 'RISE', 'TRAN.', 'SET'], data: Array.from({ length: days }, (_, i) => [`${t.y}-${p2(t.mo)}-${p2(i + 1)}`, '06:16', '12:12', WX.sunset]) });
@@ -147,7 +150,7 @@ async function newContext() {
   await c.route('**/daily/weather/data/nowcast.json*', route => {
     const up = Math.floor((simNow - WX.nowcast.ageMin * 60e3) / 60e3) * 60e3;
     const iso = ms => { const t = hk(ms); return `${t.y}-${p2(t.mo)}-${p2(t.d)}T${p2(t.h)}:${p2(t.mi)}:00+08:00`; };
-    return json(route, { updated: iso(up), lat: 22.268, lon: 114.182, periods: WX.nowcast.mm.map((mm, i) => ({ end: iso(up + (i + 1) * 30 * 60e3), mm })) });
+    return json(route, { updated: iso(up), lat: 22.3, lon: 114.2, periods: WX.nowcast.mm.map((mm, i) => ({ end: iso(up + (i + 1) * 30 * 60e3), mm })) });
   });
   return c;
 }
@@ -459,7 +462,7 @@ console.log('Weather prompts and warnings');
   await page.screenshot({ path: `${SHOTS}/18-rain-before-walk.png` });
   WX.raining = true;
   s = await wxAt(page, 0, walk.start + 20);
-  check(s.prompt === 'Raining in Wan Chai now', `rain during the walk: "${s.prompt}"`);
+  check(s.prompt === `Raining in ${FEEDS.rainPlace} now`, `rain during the walk: "${s.prompt}"`);
   WX.raining = false; WX.icons = {};
   s = await wxAt(page, 0, walk.end + 40);
   check(s.prompt === '', `no prompt after the walk: "${s.prompt}"`);
@@ -475,7 +478,7 @@ console.log('Weather prompts and warnings');
   await page.setViewportSize({ width: 800, height: 360 });
   WX.temps = {}; WX.aqhi = 8; WX.aqhiRisk = 'Very High';
   s = await wxAt(page, 0, move.start - 5);
-  check(has(s, 'Air quality 8 (Very High) at Eastern') && !has(s, 'Hot'), `poor air prompt: "${s.prompt}"`);
+  check(has(s, `Air quality 8 (Very High) at ${FEEDS.airStation}`) && !has(s, 'Hot'), `poor air prompt: "${s.prompt}"`);
   WX.aqhi = 3; WX.aqhiRisk = 'Low'; WX.forecast = 'Moderate to High';
   s = await wxAt(page, 0, move.start + 30);
   check(has(s, 'Air quality forecast: Moderate to High') && !has(s, ' at ' + fmtT(move.start) + ':'), `air forecast prompt during the block: "${s.prompt}"`);
@@ -691,7 +694,7 @@ console.log('Weather relay');
     if (!relayUp) return route.abort('connectionrefused');
     const up = Math.floor((simNow - WX.nowcast.ageMin * 60e3) / 60e3) * 60e3;
     const iso = ms => { const t = hk(ms); return `${t.y}-${p2(t.mo)}-${p2(t.d)}T${p2(t.h)}:${p2(t.mi)}:00+08:00`; };
-    return json(route, { updated: iso(up), lat: 22.268, lon: 114.182, periods: WX.nowcast.mm.map((mm, i) => ({ end: iso(up + (i + 1) * 30 * 60e3), mm })) });
+    return json(route, { updated: iso(up), lat: 22.3, lon: 114.2, periods: WX.nowcast.mm.map((mm, i) => ({ end: iso(up + (i + 1) * 30 * 60e3), mm })) });
   });
   Object.assign(WX, { warn: {}, raining: false, temps: {}, icons: {}, aqhi: 3, aqhiRisk: 'Low', forecast: 'Low', fail: false, airAgeMin: 30, nowcast: { ageMin: 5, mm: [0, 1.5, 0, 0] } });
   const walk = DATA.routines.flatMap(r => r.steps).find(st => st.walk);

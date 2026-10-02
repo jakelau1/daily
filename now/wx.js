@@ -1,8 +1,9 @@
-// Weather for the "now" display, from the same sources and the same "Happy Valley" setting as the Weather page:
+// Weather for the "now" display. The places it reads (temperature place, rain gauge, air-quality station, forecast points)
+// come from the private data bundled with the schedule (options.places, from data.feeds); the defaults below are neutral:
 //   warnings            Observatory warning summary (live)            -> typhoon / rainstorm takeover, heat warning
-//   current readings    Observatory hourly readings (live)            -> Happy Valley temperature, Wan Chai rainfall
+//   current readings    Observatory hourly readings (live)            -> temperature and rainfall at the chosen places
 //   sunset              Observatory sunrise/sunset table (live)       -> "ends after sunset"
-//   rain nowcast        weather relay /nowcast, else ../weather/data/nowcast.json -> rain in the next 2 hours at Happy Valley
+//   rain nowcast        weather relay /nowcast, else ../weather/data/nowcast.json -> rain in the next 2 hours at the chosen point
 //   hourly forecast     weather relay /ocf,     else ../weather/data/ocf.json     -> rain and temperature by hour
 //   air quality         weather relay /aqhi,    else ../weather/data/aqhi.json    -> Eastern station and the forecast
 // The nowcast, forecast and air-quality servers don't let other web pages read them (checked: no CORS permission).
@@ -21,8 +22,8 @@
     if (!RELAY) return get(COPY + name + '.json');
     return get(RELAY + '/' + name).catch(function () { return get(COPY + name + '.json'); });
   }
-  var TEMP_PLACE = 'Happy Valley', RAIN_PLACE = 'Wan Chai', AIR_STATION = 'Eastern';
-  var FORECAST_POINTS = ['HPV', 'HKP', 'HKO'];     // as the Weather page: first point that forecasts each thing
+  var TEMP_PLACE = 'Hong Kong Observatory', RAIN_PLACE = 'Central & Western District', AIR_STATION = 'Central/Western';
+  var FORECAST_POINTS = ['HKO'];     // as the Weather page: the first point listed that forecasts each thing
   var RAIN_ICONS = [53, 54, 62, 63, 64, 65];       // Observatory weather icons with showers or rain (as the Weather page)
   var HOT = 33;                                    // °C
   var POOR_AIR = 7;                                // AQHI: 7 and above is "High" health risk or worse
@@ -266,7 +267,15 @@
   }
 
   window.NowWx = {
-    init: function (options) { opt = options; poll(); setInterval(poll, 60e3); },
+    init: function (options) {
+      opt = options;
+      var p = options.places;                          // private choices (data.feeds); anything missing keeps its default
+      if (p) {
+        TEMP_PLACE = p.tempPlace || TEMP_PLACE; RAIN_PLACE = p.rainPlace || RAIN_PLACE; AIR_STATION = p.airStation || AIR_STATION;
+        if (p.forecastPoints && p.forecastPoints.length) FORECAST_POINTS = p.forecastPoints;
+      }
+      poll(); setInterval(poll, 60e3);
+    },
     takeover: takeover,
     banners: banners,
     prompts: prompts,

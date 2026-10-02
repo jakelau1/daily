@@ -37,6 +37,8 @@ if (!fs.existsSync(r('private/schedule.html'))) stop('private/schedule.html not 
 
 // 1. Extract and check.
 const data = extract();
+// The weather places the display reads (private; they name the home area): travel inside the encrypted payload.
+try { data.feeds = JSON.parse(fs.readFileSync(r('private/config.json'), 'utf8')).feeds || null; } catch { data.feeds = null; }
 const problems = check(data);
 if (problems.length) stop('the schedule has problems:\n  ' + problems.join('\n  '));
 const payload = JSON.stringify(data);
