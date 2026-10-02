@@ -22,10 +22,8 @@
   var JT_TUNNELS = [{ id: "WH", name: "Western" }, { id: "CH", name: "Cross Harbour" }, { id: "EH", name: "Eastern" }];
 
   // Camera codes are from the Transport Department "Traffic snapshot images" dataset.
-  var TRAFFIC = [
-    { group: "Leaving Happy Valley", cams: [
-      { id: "AID01108", name: "Wong Nai Chung Gap Flyover near Racecourse", dir: "Northbound" },
-      { id: "AID01216", name: "Wong Nai Chung Gap Flyover near Racecourse", dir: "Southbound" }] },
+  // The app build can add its own preset groups first (presets.js); the public site has none.
+  var TRAFFIC = (window.CamPresets || []).concat([
     { group: "Western Harbour Crossing", cams: [
       { id: "H702F", name: "Western Harbour Crossing", dir: "Hong Kong side" },
       { id: "K901F", name: "Western Harbour Crossing", dir: "Kowloon side" }] },
@@ -36,7 +34,7 @@
       // No camera is named as the Eastern Harbour Crossing's Hong Kong entrance; this is the closest named one, and it faces westbound.
       { id: "AID04222", name: "Island Eastern Corridor near Eastern Harbour Crossing", dir: "Westbound" },
       { id: "K952F", name: "Eastern Harbour Crossing", dir: "Kowloon side" }] }
-  ];
+  ]);
   var WINDOW = [
     { id: "TC560F", name: "Tsing Ma Bridge", dir: "" },
     { id: "TC604F", name: "Ting Kau Bridge", dir: "" },
