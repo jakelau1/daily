@@ -75,6 +75,11 @@ export function termPattern(t) {
   const esc = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return /^[\x00-\x7f]+$/.test(t) && t.length <= 6 ? new RegExp('\\b' + esc + '\\b', 'i') : new RegExp(esc, 'i');
 }
+// Narrow exceptions, kept in the private config with the reason: "allowIn": [{"file": "...", "term": "...", "why": "..."}].
+// A staged file may hold the one named term; every other term, and every other file, is still checked. It only lets an
+// added line through; --audit still lists the file. A file-name match is never excused.
+const allowances = () => { try { return JSON.parse(fs.readFileSync(CONFIG, 'utf8')).allowIn || []; } catch (e) { return []; } };
+const allowed = (f, t) => allowances().some(a => a.file === f && String(a.term).trim().toLowerCase() === t.toLowerCase());
 const tracked = () => git(['ls-files', '-z']).toString('utf8').split('\0').filter(Boolean);
 const readStaged = f => git(['show', `:${f}`]);
 
@@ -122,6 +127,7 @@ if (isMain) {
       .split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++')).join('\n');
     for (const [t, re] of terms) {
       if (re.test(f)) { problems.push(`${f}: the file name contains a sensitive term ("${t}")`); break; }
+      if (allowed(f, t)) continue; // a listed exception: this file may hold this one term (see allowIn in the private config)
       if (re.test(added)) { problems.push(`${f}: adds a sensitive term ("${t}")`); break; }
     }
   }

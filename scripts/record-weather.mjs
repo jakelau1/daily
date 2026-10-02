@@ -5,9 +5,11 @@ import path from 'node:path';
 const DIR = path.join(process.env.WEATHER_DIR || '.', 'data');
 const HKO = 'https://data.weather.gov.hk/weatherAPI/opendata';
 const KEEP_HOURS = 36;
-// Every forecast point the page might ask for (HKO station codes).
-const OCF_CODES = ['HPV','HKP','HKO','SKW','HKS','STY','KP','KLT','SE1','KTG','SSP','WTS','SHA','TPO','YCT','PLC',
-  'JKB','SKG','TWN','TW','TY1','TU1','YLP','LFS','SEK','TKL','HKA','CCH'];
+// Every forecast point the page might ask for (HKO station codes), in alphabetical order.
+const OCF_CODES = [
+  'CCH','HKA','HKO','HKP','HKS','HPV','JKB','KLT','KP','KTG','LFS','PLC','SE1','SEK','SHA','SKG','SKW','SSP','STY',
+  'TKL','TPO','TU1','TW','TWN','TY1','WTS','YCT','YLP'
+];
 
 async function text(url) {
   const r = await fetch(url);
