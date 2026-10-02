@@ -28,7 +28,7 @@ fieldset{border:0;padding:0;margin:0 0 18px}
 .results{min-width:0}
 .headline,.chart-box,.table-box{padding:clamp(20px,3vw,30px);border-radius:22px;background:var(--glass);border:1px solid var(--glass-edge);box-shadow:inset 0 1px 0 var(--glass-hi),var(--shadow);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%)}
 .chart-box,.table-box{margin-top:18px}
-.big{font:300 clamp(2.6rem,7vw,4.6rem)/1 var(--f-mono);letter-spacing:-.06em;font-variant-numeric:tabular-nums;color:var(--tint)}
+.big{font:300 clamp(1.9rem,9.5vw,4.6rem)/1 var(--f-mono);overflow-wrap:anywhere;letter-spacing:-.06em;font-variant-numeric:tabular-nums;color:var(--tint)}
 .summary{margin:14px 0 0;max-width:64ch}
 .summary strong{font-weight:600}
 .sbar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:20px;background:var(--hair)}

@@ -111,8 +111,22 @@ function aqhiFixture() {
     range: `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><item><title>Forecast of Health Risk: </title><description><![CDATA[<p>&lt;Today A.M.&gt;<p>General Stations: ${WX.forecast}</p><p>Roadside Stations: ${WX.forecast}</p></p><p>&lt;Today P.M.&gt;<p>General Stations: ${WX.forecast}</p><p>Roadside Stations: ${WX.forecast}</p></p>]]></description></item></channel></rss>`
   };
 }
+// The built page carries the real relay's address (relay/url.txt). Tests must never reach it: serve the page with the address
+// the test wants instead ('' = no relay, so the display uses the recorder's copies), and keep the security policy in step.
+function servePageWithRelay(ctx, relay) {
+  return ctx.route(/\/daily\/now\/(index\.html)?(\?.*)?$/, async route => {
+    const res = await route.fetch();
+    let html = await res.text();
+    const real = /data-relay="([^"]*)"/.exec(html)?.[1];
+    if (real) html = html.split(real).join('');                 // remove the real address everywhere (attribute and policy)
+    html = html.replace('data-relay=""', `data-relay="${relay}"`);
+    if (relay) html = html.replace(/(connect-src[^;"]*?)(;|")/, `$1 ${relay}$2`);
+    return route.fulfill({ response: res, body: html });
+  });
+}
 async function newContext() {
   const c = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+  await servePageWithRelay(c, '');
   const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
   await c.route('https://data.weather.gov.hk/**', route => {
     if (WX.fail) return route.abort('internetdisconnected');
@@ -606,13 +620,8 @@ console.log('Weather relay');
   const ctxR = await newContext();
   let relayUp = true, copiesUp = true;
   const seen = [];
-  // Serve the page as the build would with relay/url.txt set (data-relay and the policy entry).
-  await ctxR.route(/\/daily\/now\/(index\.html)?(\?.*)?$/, async route => {
-    const res = await route.fetch();
-    const html = (await res.text()).replace('data-relay=""', `data-relay="${RELAY}"`)
-      .replace("https://data.weather.gov.hk;", `https://data.weather.gov.hk ${RELAY};`);
-    return route.fulfill({ response: res, body: html });
-  });
+  // Serve the page as the build would with a relay set (data-relay and the policy entry).
+  await servePageWithRelay(ctxR, RELAY);
   const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
   await ctxR.route(`${RELAY}/**`, route => {
     const name = new URL(route.request().url()).pathname.slice(1);
