@@ -14,8 +14,10 @@
   var API = 'https://data.weather.gov.hk/weatherAPI/opendata/';
   var COPY = document.documentElement.getAttribute('data-copy') || '../weather/data/';   // the app serves these from another folder
   var RELAY = document.documentElement.getAttribute('data-relay') || '';
-  // The relay first, then the recorder's copy.
+  // The app (window.NowDirect, app/web/direct-feeds.js) reads the servers itself; else the relay; each falls back to the recorder's copy.
   function relayed(name) {
+    var direct = window.NowDirect && window.NowDirect[name];
+    if (direct) return direct().catch(function () { return get(COPY + name + '.json'); });
     if (!RELAY) return get(COPY + name + '.json');
     return get(RELAY + '/' + name).catch(function () { return get(COPY + name + '.json'); });
   }
@@ -94,7 +96,8 @@
     }).then(function () { opt.onChange(key); });
   }
   function poll() {
-    Object.keys(SOURCES).forEach(function (k) { if (!S[k] || Date.now() >= S[k].next) refresh(k); });
+    // options.needs(key), if given, says whether a source is wanted right now (the app skips the big rain file when no walk is near).
+    Object.keys(SOURCES).forEach(function (k) { if (opt.needs && !opt.needs(k)) return; if (!S[k] || Date.now() >= S[k].next) refresh(k); });
   }
   // Is this reading too old to trust? (Also true when there has never been one.)
   function old(key) {

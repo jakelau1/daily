@@ -197,6 +197,19 @@ for (const [name, [url, valid]] of Object.entries(feeds)) {
   check(good, `cannot read ${name} inside the app`);
 }
 
+console.log('The display reads the weather directly (not the old copies)');
+await page.waitFor("window.NowDirect && NowDirect.status.ocf && NowDirect.status.aqhi", 40000);
+const st = await page.ev('JSON.stringify(NowDirect.status)');
+check(JSON.parse(st).ocf?.ok && JSON.parse(st).aqhi?.ok, 'the forecast and air-quality direct reads did not succeed: ' + st.slice(0, 200));
+const wxs = JSON.parse(await page.ev('JSON.stringify(NowWx.status())'));
+check(/^Air \d+/.test(wxs.air) && wxs.airOld === false, 'air quality is missing or marked old: ' + JSON.stringify(wxs).slice(0, 160));
+const nc = JSON.parse(await page.ev('NowDirect.nowcast().then(d => JSON.stringify({ n: d.periods.length, first: d.periods[0], updated: d.updated, lat: d.lat }), e => JSON.stringify({ error: String(e) }))'));
+check(!nc.error && nc.n >= 4 && Number.isFinite(nc.first.mm) && /^\d{4}-\d\d-\d\dT/.test(nc.updated), 'the rain nowcast direct read is wrong: ' + JSON.stringify(nc).slice(0, 200));
+await page.ev('NowDirect.nowcast().then(() => 0)');
+const again = JSON.parse(await page.ev('JSON.stringify(NowDirect.status)'));
+console.log(`      rain nowcast: ${nc.n} half-hour periods; a repeat request got "not changed" ${again.nowcastUnchanged || 0} time(s)`);
+check((again.nowcastUnchanged || 0) >= 1, 'a repeat rain request did not get "not changed" (it downloaded the whole file again)');
+
 console.log('Screen: landscape, stays awake');
 const png = pngSize(shot('01-now'));
 check(png.w > png.h, `the screen is not landscape (${png.w}x${png.h})`);

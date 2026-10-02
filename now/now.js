@@ -120,6 +120,11 @@
     });
     return items.sort(function (a, b) { return a.start - b.start; });
   }
+  // Is a walk on now or about to start (a little earlier than its prompt appears)?
+  function walkNear() {
+    var t = hkNow(new Date());
+    return outdoorToday(t).some(function (it) { return it.walk && it.end > t.min && it.start < t.min + PROMPT_BEFORE + 15; });
+  }
   // The weather prompt for the outdoor item that is on now or starts within the hour ('' if none).
   function promptText(t) {
     if (!window.NowWx) return '';
@@ -401,6 +406,8 @@
       // today's minute -> ms, and ms -> minutes after midnight (Hong Kong time)
       at: function (min) { var t = hkNow(new Date()); return Date.now() - ((t.min - min) * 60 + t.sec) * 1000; },
       minOf: function (ms) { return hkNow(new Date(ms)).min; },
+      // The app's direct reads: the large rain file is only fetched while an outdoor walk is on or about to start.
+      needs: window.NowDirect ? function (key) { return key !== 'nowcast' || walkNear(); } : null,
       onChange: function () { render(new Date()); }
     });
     $('app').addEventListener('click', function (e) { if (e.target !== el.wake) window.NowPlan.tap(); });

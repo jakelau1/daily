@@ -8,6 +8,6 @@
   window.AppStore.ready()
     .then(function () { return fetch('data.json', { cache: 'no-store' }); })
     .then(function (r) { if (!r.ok) throw new Error('the schedule file answered ' + r.status); return r.json(); })
-    .then(function (data) { loading.hidden = true; window.NowApp.start(data); })
+    .then(function (data) { loading.hidden = true; window.NowFeedPoints = data.feeds || null; window.NowApp.start(data); })
     .catch(function (e) { fail('The app could not start: ' + ((e && e.message) || e)); });
 })();
