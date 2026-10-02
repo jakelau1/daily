@@ -1,4 +1,4 @@
-/* Study: PHL245 video catalogue (data in videos.js). Filter by kind, search titles, copy links. */
+/* Study: lecture video catalogue (data in videos.js). Filter by kind, search titles, copy links. */
 (function () {
   "use strict";
   var HK = window.HK, D = window.STUDY || STUDY;

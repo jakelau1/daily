@@ -8,3 +8,8 @@ workers_dev = true
 [vars]
 # Pages allowed to use the relay (comma-separated).
 ALLOWED_ORIGINS = "https://jakelau1.github.io"
+
+# Logging off: Cloudflare turns Workers Logs on by default for new Workers (observability.enabled defaults to true).
+# false stops it keeping a record of requests. Per Cloudflare's Wrangler configuration reference.
+[observability]
+enabled = false

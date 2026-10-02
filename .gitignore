@@ -7,3 +7,5 @@ build/
 node_modules/
 # Cloudflare wrangler's local working files
 .wrangler/
+# Project notes stay on this computer
+ROADMAP.md

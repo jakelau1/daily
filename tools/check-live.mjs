@@ -49,7 +49,7 @@ await page.reload();
 await page.locator('#app').waitFor({ timeout: 30000 });
 report(await page.locator('#lock').isHidden(), 'unlocked by itself after a reload');
 await page.waitForTimeout(4000);
-report(!!(await page.evaluate(() => window.NowPlan)), 'planning picker code loaded');
+report(!!(await page.evaluate(() => window.NowPlan)), 'picker code loaded');
 report(await page.locator('#banner').isHidden(), 'no "no connection" banner');
 const wx = await page.evaluate(() => ({ temp: document.getElementById('wx-temp').textContent, tempOld: document.getElementById('wx-temp').classList.contains('old'),
   air: document.getElementById('wx-air').textContent, airOld: document.getElementById('wx-air').classList.contains('old'),

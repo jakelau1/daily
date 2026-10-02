@@ -1,7 +1,7 @@
-/* PHL245 video catalogue (generated once from the old page by tools/phl245-to-js.mjs). Ages are as shown on the playlist on 29 September 2026. */
+/* Lecture video catalogue (generated once from an old page by tools/lecture-videos-to-js.mjs). Ages are as shown on the playlist on 29 September 2026. */
 const STUDY = {
  "intro": {
-  "title": "245 Introduction",
+  "title": "Introduction",
   "id": "7kNHWAwDO1w",
   "note": "Course introduction, uploaded about 6 years ago"
  },

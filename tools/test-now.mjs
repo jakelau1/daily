@@ -297,8 +297,8 @@ checks++;
 if (await page.locator('#lock').isVisible()) fail('asked for the password after the daily reload');
 await page.close();
 
-// ---------- 5b. planning picker (stage 2), in a fresh browser profile ----------
-console.log('Planning picker');
+// ---------- 5b. daily picker (stage 2), in a fresh browser profile ----------
+console.log('Daily picker');
 {
   const ctx2 = await newContext();
   const planOf = d => DATA.blocks.find(b => b.planning && b.day === d);
@@ -313,15 +313,15 @@ console.log('Planning picker');
   page = await newPage(ctx2, at(pickDay, plan1.start - 2));
   await unlock(page);
   await page.locator('#app').waitFor({ timeout: 30000 });
-  check(await page.locator('#plan').isHidden(), 'picker open before Planning');
+  check(await page.locator('#plan').isHidden(), 'picker open before its block');
   await goTo(page, pickDay, plan1.start, 5);
-  check(await page.locator('#plan').isVisible(), 'picker did not open by itself at Planning');
+  check(await page.locator('#plan').isVisible(), 'picker did not open by itself at its block');
   check(await page.locator('.plan-row').count() === openOn(pickDay).length, `picker should list ${openOn(pickDay).length} blocks`);
   await page.screenshot({ path: `${SHOTS}/13-plan-list.png` });
 
   await page.locator('.plan-row').nth(0).click();
   check(await page.locator('.chip').count() === 0, 'a fresh browser should have no saved choices');
-  await page.fill('#plan-what', 'Test pastime A');
+  await page.fill('#plan-what', 'Test choice A');
   await page.fill('#plan-floor', 'test floor A');
   await page.screenshot({ path: `${SHOTS}/14-plan-typing.png` });
   await page.setViewportSize({ width: 800, height: 190 });       // roughly what's left with the keyboard up
@@ -330,12 +330,12 @@ console.log('Planning picker');
   check(await page.locator('.plan-save').isVisible(), 'Save button not reachable with little screen height');
   await page.setViewportSize({ width: 800, height: 360 });
   await page.click('.plan-save');
-  check(/Test pastime A/.test(await text(page, '.plan-row >> nth=0')), 'first pick not shown in the list');
+  check(/Test choice A/.test(await text(page, '.plan-row >> nth=0')), 'first pick not shown in the list');
   await page.locator('.plan-row').nth(1).click();
-  await page.fill('#plan-what', 'Test movement B');                // no floor typed
+  await page.fill('#plan-what', 'Test choice B');                // no floor typed
   await page.press('#plan-what', 'Enter');                          // Enter moves to the floor box
   await page.press('#plan-floor', 'Enter');                         // Enter in the floor box saves
-  check(/Test movement B/.test(await text(page, '.plan-row >> nth=1')), 'second pick not shown in the list');
+  check(/Test choice B/.test(await text(page, '.plan-row >> nth=1')), 'second pick not shown in the list');
   await page.screenshot({ path: `${SHOTS}/15-plan-done.png` });
   const wide = await page.evaluate(() => { const p = document.getElementById('plan'); return p.scrollWidth > p.clientWidth + 1; });
   check(!wide, 'picker wider than the screen');
@@ -345,14 +345,14 @@ console.log('Planning picker');
   check(await page.locator('#plan').isHidden(), 'picker reopened by itself after Done');
 
   let s = await goTo(page, pickDay, o1.start + 5);
-  check(s.label === 'Test pastime A' && s.floor === 'Floor: test floor A', `picked block shows "${s.label}" / "${s.floor}"`);
+  check(s.label === 'Test choice A' && s.floor === 'Floor: test floor A', `picked block shows "${s.label}" / "${s.floor}"`);
   check(await text(page, '#sub') === o1.label, 'picked block should name its category underneath');
   await page.screenshot({ path: `${SHOTS}/16-picked-block.png` });
   s = await goTo(page, pickDay, o2.start + 5);
   const generic = DATA.cats[o2.cat].floor;
-  check(s.label === 'Test movement B' && s.floor === (generic ? 'Floor: ' + generic : ''), `pick without a floor shows "${s.label}" / "${s.floor}"`);
+  check(s.label === 'Test choice B' && s.floor === (generic ? 'Floor: ' + generic : ''), `pick without a floor shows "${s.label}" / "${s.floor}"`);
   s = await goTo(page, pickDay, o1.start - 1);
-  check(s.label === 'Test pastime A' || /Test pastime A/.test(s.next), 'the next line should name the pick');
+  check(s.label === 'Test choice A' || /Test choice A/.test(s.next), 'the next line should name the pick');
 
   await page.click('#label');                                       // tap the display: picker for swaps
   check(await page.locator('#plan').isVisible(), 'tapping the display did not open the picker');
@@ -370,20 +370,20 @@ console.log('Planning picker');
   check(!/Test/.test(await text(page, '#plan-body')), 'yesterday’s picks were not cleared');
   const sameCat = openOn(nextDay).findIndex(b => b.cat === o1.cat);
   await page.locator('.plan-row').nth(sameCat).click();
-  check(await page.locator('.chip', { hasText: 'Test pastime A' }).count() === 1, 'saved choice not offered the next day');
+  check(await page.locator('.chip', { hasText: 'Test choice A' }).count() === 1, 'saved choice not offered the next day');
   await page.screenshot({ path: `${SHOTS}/17-plan-saved-choice.png` });
-  await page.locator('.chip', { hasText: 'Test pastime A' }).click();  // one tap picks it, floor included
+  await page.locator('.chip', { hasText: 'Test choice A' }).click();  // one tap picks it, floor included
   // Remove a saved choice: open the same block again, switch to removing, tap it.
-  await page.locator('.plan-row', { hasText: 'Test pastime A' }).click();
+  await page.locator('.plan-row', { hasText: 'Test choice A' }).click();
   await page.locator('.plan-btn', { hasText: 'Remove saved choices' }).click();
-  await page.locator('.chip', { hasText: 'Test pastime A' }).click();
-  check(await page.locator('.chip', { hasText: 'Test pastime A' }).count() === 0, 'removing a saved choice did not work');
-  check(await page.locator('.chip', { hasText: 'Test movement B' }).count() === 0, 'choices from another category shown');
+  await page.locator('.chip', { hasText: 'Test choice A' }).click();
+  check(await page.locator('.chip', { hasText: 'Test choice A' }).count() === 0, 'removing a saved choice did not work');
+  check(await page.locator('.chip', { hasText: 'Test choice B' }).count() === 0, 'choices from another category shown');
   await page.locator('.plan-btn', { hasText: 'Back' }).click();
   await page.click('#plan-done');
   const b = openOn(nextDay)[sameCat];
   s = await goTo(page, nextDay, b.start + 5);
-  check(s.label === 'Test pastime A' && s.floor === 'Floor: test floor A', 'one-tap pick lost its saved floor (removing it from the list should not undo today’s pick)');
+  check(s.label === 'Test choice A' && s.floor === 'Floor: test floor A', 'one-tap pick lost its saved floor (removing it from the list should not undo today’s pick)');
   if (n2) {
     const other = openOn(nextDay).find((x, i) => i !== sameCat);
     s = await goTo(page, nextDay, other.start + 5);
@@ -429,7 +429,7 @@ console.log('Weather prompts and warnings');
   page = await newPage(ctx3, at(0, 8 * 60));
   await unlock(page);
   await page.locator('#app').waitFor({ timeout: 30000 });
-  check(!!walk && !!move, 'expected a dog walk step and a Monday Movement block');
+  check(!!walk && !!move, 'expected a rain-flagged step and a weather-flagged block');
 
   WX.icons[d0 + p2(walk.start / 60)] = 63;                  // showers in the walk's hour, and the nowcast is old
   let s = await wxAt(page, 0, walk.start - 55);
@@ -452,7 +452,7 @@ console.log('Weather prompts and warnings');
 
   WX.temps[d0 + p2(move.start / 60)] = 34;
   s = await wxAt(page, 0, move.start - 45);
-  check(has(s, `Hot: 34° forecast at ${fmtT(move.start)}`), `heat prompt before Movement: "${s.prompt}"`);
+  check(has(s, `Hot: 34° forecast at ${fmtT(move.start)}`), `heat prompt before the flagged block: "${s.prompt}"`);
   check(has(s, 'Ends after sunset (6:07pm)'), `sunset flag: "${s.prompt}"`);
   await page.screenshot({ path: `${SHOTS}/19-heat-before-movement.png` });
   await page.setViewportSize({ width: 640, height: 360 });
@@ -467,7 +467,7 @@ console.log('Weather prompts and warnings');
   check(has(s, 'Air quality forecast: Moderate to High') && !has(s, ' at ' + fmtT(move.start) + ':'), `air forecast prompt during the block: "${s.prompt}"`);
   WX.forecast = 'Low';
   s = await wxAt(page, 0, move.end + 31);
-  check(s.prompt === '', `no prompt after Movement: "${s.prompt}"`);
+  check(s.prompt === '', `no prompt after the flagged block: "${s.prompt}"`);
   const problemsBefore = page.problems.slice();
 
   // Typhoon signal: takes over; a tap shows the schedule for 10 minutes; a rainstorm warning on top; cancelled.
@@ -527,7 +527,7 @@ console.log('Travel and leave-by');
   await unlock(page);
   await page.locator('#app').waitFor({ timeout: 30000 });
   await goTo(page, D, plan.start, 5);
-  check(await page.locator('#plan').isVisible(), 'picker did not open at Planning');
+  check(await page.locator('#plan').isVisible(), 'picker did not open at its block');
   await page.click('.plan-add');
   await page.locator('.plan-row', { hasText: fixed.label }).click();
   await page.fill('#plan-travel-min', '47');
@@ -535,7 +535,7 @@ console.log('Travel and leave-by');
   await page.fill('#plan-travel-route', 'Walk 10 · MTR 25 · walk 12');
   await page.screenshot({ path: `${SHOTS}/23-plan-travel.png` });
   await page.click('.plan-save');
-  check((await text(page, '#plan-body')).includes(`leave by ${fmtT(leave)} (47 min travel + 10 spare)`), 'travel not shown in the Planning list');
+  check((await text(page, '#plan-body')).includes(`leave by ${fmtT(leave)} (47 min travel + 10 spare)`), 'travel not shown in the picker list');
   await page.locator('.plan-row', { hasText: fixed.label }).click();
   check(await page.inputValue('#plan-travel-min') === '47', 'saved travel not filled in when editing');
   await page.fill('#plan-travel-min', 'about an hour');

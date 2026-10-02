@@ -119,7 +119,7 @@ p, h1 { margin: 0; }
 .night .now { opacity: .38; }
 .night .bar-fill { background: var(--dim); }
 
-/* ---------- planning picker (plan.js) ---------- */
+/* ---------- daily picker (plan.js) ---------- */
 .plan {
   position: fixed; inset: 0; z-index: 2; box-sizing: border-box; background: var(--bg);
   display: flex; flex-direction: column;

@@ -1,5 +1,5 @@
-// Planning picker for the "now" display. During the Planning block (or after a tap on the display) it lists:
-//   - today's blocks that are chosen at Planning (marked open: true by tools/extract-schedule.mjs): type today's
+// Daily picker for the "now" display. During the block flagged planning (or after a tap on the display) it lists:
+//   - today's blocks that get a daily choice (marked open: true by tools/extract-schedule.mjs): type today's
 //     choice, its floor, and, if it needs travel, the travel time;
 //   - today's blocks that have travel saved, and "Add travel to another block" for the rest.
 // Travel is entered as typical minutes (door to door), spare minutes, and an optional note of the route. now.js turns

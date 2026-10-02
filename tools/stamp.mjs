@@ -12,7 +12,7 @@ export const SECTIONS = [
   { dir: 'cams',     key: 'cams',     en: 'Roads',     zh: '路況',  sub: 'Cameras and harbour-tunnel times' },
   { dir: 'trips',    key: 'trips',    en: 'Day trips', zh: '一日遊', sub: '15 days out from Happy Valley' },
   { dir: 'savings',  key: 'savings',  en: 'Savings',   zh: '儲蓄',  sub: 'Compound-interest calculator' },
-  { dir: 'study',    key: 'study',    en: 'Study',     zh: '溫書',  sub: 'PHL245 videos, Units 1–9' },
+  { dir: 'study',    key: 'study',    en: 'Study',     zh: '溫書',  sub: 'Lecture videos by unit' },
 ];
 const SKIP = new Set(['node_modules', '.git', '.github', 'legacy', 'vendor', '_site', 'partials', 'tools', 'scripts', 'data']);
 const read = f => fs.readFileSync(f, 'utf8');

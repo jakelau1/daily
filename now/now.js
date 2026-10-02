@@ -62,11 +62,9 @@
     blocks = (data.blocks || []).map(function (b) {
       return { b: b, s: b.day * DAY + b.start, e: b.day * DAY + b.end };
     }).sort(function (x, y) { return x.s - y.s; });
-    // Dim from bedtime (the evening routine's last step) until half an hour before the morning routine.
-    var eve = routines.filter(function (r) { return /evening/i.test(r.name); })[0];
-    var morn = routines.filter(function (r) { return /morning/i.test(r.name); })[0];
-    if (eve && eve.steps.length) night.from = eve.steps[eve.steps.length - 1].start;
-    if (morn && morn.steps.length) night.to = Math.max(0, morn.steps[0].start - 30);
+    // When to dim comes with the data (worked out when the page is built); these defaults apply if it is missing.
+    if (data.night && data.night.from != null) night.from = data.night.from;
+    if (data.night && data.night.to != null) night.to = data.night.to;
   }
   // The block that starts at or after week-minute t, wrapping from Sunday night to Monday.
   function nextFrom(t) {
@@ -93,7 +91,7 @@
     return null;
   }
   function floorOf(b) { return cats[b.cat] && cats[b.cat].floor; }
-  // Today's choice for a block chosen at Planning (see plan.js), or null.
+  // Today's choice for a block that gets one (see plan.js), or null.
   function pickOf(b) { return b.open && window.NowPlan ? window.NowPlan.pickFor(b.id) : null; }
   function nameOf(b) { var p = pickOf(b); return p ? b.label + ': ' + p.what : b.label; }
   function hueOf(key) {
@@ -104,7 +102,7 @@
 
   // ---------- weather prompts (wx.js) ----------
   var PROMPT_BEFORE = 60;   // minutes: weather prompts start an hour before an outdoor item
-  // Today's outdoor items: dog-walk routine steps (walk) and Movement blocks (move), in minutes after midnight.
+  // Today's weather-checked items: routine steps flagged walk and blocks flagged move, in minutes after midnight.
   function outdoorToday(t) {
     var items = [];
     blocks.forEach(function (x) {
@@ -135,7 +133,7 @@
     return '';
   }
 
-  // ---------- leave-by countdown (travel saved at Planning, see plan.js) ----------
+  // ---------- leave-by countdown (travel saved in the picker, see plan.js) ----------
   var LEAVE_LEAD = 60;      // minutes: the countdown starts an hour before it's time to leave
   // The next block today that needs travel, once it's within an hour of leaving: { b, travel, leave } or null.
   function leaving(t) {

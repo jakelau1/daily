@@ -1,7 +1,7 @@
 # Hong Kong, from Happy Valley
 
 One small site, seven sections, hosted on GitHub Pages at `…/daily/` (https://jakelau1.github.io/daily/), copied from `jakelau1/main-hk`. It replaces five separate pages
-(private-hk-weather + its hiking map, phl245-videos, hk-traffic-cams, happy-valley-arrivals, hk-day-trips) and adds a
+(a weather page with a hiking map, a video list, a traffic-camera page, a bus-arrivals page and a day-trips page) and adds a
 compound-interest calculator.
 
 | Section | Folder | Data |
@@ -13,7 +13,7 @@ compound-interest calculator.
 | Roads 路況 | `cams/` | Transport Department journey times and camera images |
 | Day trips 一日遊 | `trips/` | hand-written content in `trips/trips-data.js` |
 | Savings 儲蓄 | `savings/` | none (calculator) |
-| Study 溫書 | `study/` | `study/videos.js` (PHL245 videos) |
+| Study 溫書 | `study/` | `study/videos.js` (lecture video links) |
 
 There is no build step for the site itself: the files in the repository are what gets published.
 
@@ -63,21 +63,20 @@ Things to know:
 No analytics, cookies or third-party scripts or fonts. Each page can only contact its own site and the government
 servers listed in its Content-Security-Policy.
 
-## The "now" display (`now/`)
+## The private "now" display (`now/`)
 
-An always-on page for an old phone: the clock, the current block of the week's schedule, time left, its "floor"
-(the smallest first step), and what's next, or "Free until …" between blocks. It is not linked from any other page.
-
-**The schedule is private.** It lives in `private/schedule.html`, which git ignores, and is only ever published
-encrypted with [StatiCrypt](https://github.com/robinmoisson/staticrypt) inside `now/index.html`. Everything else in
-`now/` is ordinary public code with no schedule content in it.
+A page for an always-on phone. It is not linked from any other page. It shows the owner's private schedule, which
+lives in `private/schedule.html` (git-ignored) and is only ever published encrypted with
+[StatiCrypt](https://github.com/robinmoisson/staticrypt) inside `now/index.html`. Everything else in `now/` is ordinary
+public code with no schedule content in it. The settings that tie the display to the schedule's own names are in
+`private/config.json` (also git-ignored); the build stops if it is missing.
 
 After saving a new `private/schedule.html`:
 
     npm run now                 # rebuild and check the encrypted page
     npm run now -- --publish    # the same, then commit and push it (the site updates within a few minutes)
 
-The display picks up the new version at its next daily reload (4am), or straight away if you reload it.
+The display picks up the new version at its next daily reload, or straight away if you reload it.
 
 How it fits together:
 - `tools/extract-schedule.mjs` reads the blocks, categories (with their floors) and routines out of the schedule file.
@@ -97,37 +96,11 @@ How it fits together:
   `node tools/check-private.mjs --install`) and stops a commit that includes `private/`, `build/`, `.env` or readable
   schedule text.
 
-**Planning picker** (`now/plan.js`): during the daily Planning block, the screen lists today's blocks that are chosen
-at Planning (the extraction marks them; Pastimes and Movement blocks whose note says they're picked at planning).
-Tap one, type today's choice and its floor (optional), and it shows on the display during that block. Anything typed
-is remembered in that browser with its floor and offered as a one-tap button next time ("Remove saved choices"
-removes them). Today's picks clear at 4am. After Planning, tapping the display reopens the picker to swap; it closes
-after 2 untouched minutes. Picks and saved choices stay on the phone only (browser storage), so they never reach
-GitHub, and are lost only if that browser's site data is cleared.
-
-**Travel and "leave by"** (`now/plan.js`, `now/now.js`): at Planning, "Add travel to another block" (or the travel
-fields when choosing a Pastime or Movement) takes typical door-to-door minutes, spare minutes and an optional route
-note. Travel for a fixed block repeats every week until changed or removed; travel typed with a choice is remembered
-with that choice. From an hour before it's time to leave (start − travel − spare), the display counts down: as a line
-under the current block, or as the main display in free time ("Leave by 12:18pm", the route, and "arrive about …
-(estimate)"). After that time it says "Leave now" with the estimated arrival if you left then. Only leaving is counted
-down, not coming home. All of this is saved in the phone's browser only.
-
-**Weather** (`now/wx.js`), from the same sources and "Happy Valley" setting as the Weather page:
-- *Rain before the dog walk*: from an hour before, "Showers forecast around 10am" (the Observatory's hourly weather
-  forecast) or "Raining in Wan Chai now" (its rain gauges).
-- *Heat or poor air before Movement*: from an hour before, 33°C or more forecast for Happy Valley (or measured now),
-  the Very Hot Weather Warning, the Eastern station's air-quality index at 7 or more ("High" health risk or worse),
-  or a "High" (or worse) forecast.
-- *Ends after sunset*: the dog walk and Movement blocks, using the Observatory's sunset time for the day.
-- *Typhoon signal or rainstorm warning*: takes over the screen with the warning, its issue time, the clock and what's
-  on now. A tap shows the schedule for 10 minutes; a new or changed warning takes over again at once.
-- The current temperature and air-quality index show under the date and turn grey when they're old.
-The warnings, current readings and sunset come straight from the Observatory (it allows this). Its rain nowcast and
-hourly forecast and the EPD's air quality don't let other sites' pages read them, so the display gets them from the
-**weather relay** (below), and from the recorder's copies in `weather/data/` only if the relay can't be reached. Rain
-before the walk uses the nowcast while it's fresh (under 45 minutes old) and the hourly forecast otherwise. The display
-checks each reading's own time and ignores or greys out old ones (forecast after 3 hours, air quality after 2).
+What the page does, in general terms: it shows the current item and what comes next, with weather prompts and
+warnings from the official feeds, and a small picker for choices made during the day. It shifts its layout slightly
+every few minutes and dims at night to reduce burn-in, asks the browser to keep the screen on, reloads once a day
+when the site can be reached, greys out any number that has stopped updating, and shows a banner when the connection
+is lost. Choices made on the page are saved in that browser only.
 
 ### Weather relay (`relay/`)
 GitHub ran the recorder far less often than scheduled (main-hk: 7 of about 70 scheduled runs over 36 hours; this
@@ -146,11 +119,6 @@ Setting it up (once, at the computer):
 
 Until then `relay/url.txt` doesn't exist and the display uses the recorder's copies. To test the relay on this
 computer: `npx wrangler dev --config relay/wrangler.toml --var ALLOWED_ORIGINS:http://127.0.0.1:8765`.
-
-On the phone: shifts the layout a little every 3 minutes and dims at night (from bedtime until half an hour before
-the morning routine) to reduce burn-in; asks the browser to keep the screen on; reloads once a day at 4am, but only
-when the site can be reached; greys out a number that hasn't been updated for 2½ minutes; and shows a banner
-when the connection is lost.
 
 ## Hiking section
 
