@@ -1,0 +1,66 @@
+<!doctype html>
+<!-- The Now page as the Android app loads it (tools/build-app.mjs turns this into build/app-www/index.html).
+     Like the website's locked page it has no inline script or style, so the strict Content-Security-Policy holds.
+     The schedule is not in this file: it is bundled separately (data.json) when the app is built. -->
+<html lang="en" data-copy="site/weather/data/">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://data.weather.gov.hk https://maps.weather.gov.hk https://www.aqhi.gov.hk; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
+  <title>Now</title>
+  <link rel="icon" href="site/assets/img/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="site/assets/css/fonts.css">
+  <link rel="stylesheet" href="now.css">
+  <link rel="stylesheet" href="app.css">
+  <script src="capacitor.js" defer></script>
+  <script src="store.js" defer></script>
+  <script src="plan.js" defer></script>
+  <script src="wx.js" defer></script>
+  <script src="now.js" defer></script>
+  <script src="data-panel.js" defer></script>
+  <script src="app-start.js" defer></script>
+</head>
+<body>
+  <p class="loading" id="loading">Starting…</p>
+
+  <main class="now" id="app" hidden>
+    <section class="time">
+      <p class="clock live" id="clock"><span id="clock-hm"></span><span class="ap" id="clock-ap"></span></p>
+      <p class="date" id="date"></p>
+      <p class="wx"><span class="live" id="wx-temp"></span> <span class="live" id="wx-air"></span> <span class="wx-problem" id="wx-problem"></span></p>
+    </section>
+    <section class="block">
+      <p class="kicker" id="kicker"></p>
+      <h1 class="label" id="label"></h1>
+      <p class="sub" id="sub"></p>
+      <p class="left live" id="left"></p>
+      <div class="bar" id="bar-wrap"><div class="bar-fill" id="bar"></div></div>
+      <p class="leave live" id="leave"></p>
+      <p class="prompt" id="prompt"></p>
+      <p class="floor" id="floor"></p>
+      <p class="next" id="next"></p>
+    </section>
+    <p class="banner" id="banner" role="status" hidden></p>
+    <button class="wake" id="wake" type="button" hidden>Screen may turn off. Tap to keep it on.</button>
+  </main>
+
+  <section class="alert" id="alert" role="alert" hidden>
+    <p class="alert-from">Hong Kong Observatory</p>
+    <div class="alert-titles" id="alert-titles"></div>
+    <p class="alert-issued" id="alert-issued"></p>
+    <p class="alert-strip"><span class="live" id="alert-clock"></span> <span id="alert-now"></span></p>
+    <p class="alert-hint">Tap to see the schedule for 10 minutes</p>
+  </section>
+
+  <section class="plan" id="plan" aria-labelledby="plan-title" hidden>
+    <div class="plan-bar">
+      <h2 class="plan-title" id="plan-title"></h2>
+      <button class="plan-done" id="plan-done" type="button">Done</button>
+    </div>
+    <div class="plan-body" id="plan-body"></div>
+  </section>
+</body>
+</html>

@@ -120,6 +120,23 @@ Setting it up (once, at the computer):
 Until then `relay/url.txt` doesn't exist and the display uses the recorder's copies. To test the relay on this
 computer: `npx wrangler dev --config relay/wrangler.toml --var ALLOWED_ORIGINS:http://127.0.0.1:8765`.
 
+## The Android app (`app/`)
+
+The same files, built a second way: an Android app made with [Capacitor](https://capacitorjs.com) that holds the Now
+display, the owner's private schedule and, later, more. It is never published: its files and the APK stay on the
+owner's computer (git ignores them, and the build script stops if it is not).
+
+- `app/` is the Capacitor project (its own `package.json`); `app/web/` is the app's own web code; `app/android/` is the
+  Android project (screen kept on, landscape, system bars hidden, no automatic Android backups).
+- `node tools/build-app.mjs` gathers the web files into `build/app-www/` (git-ignored) from this repository's sources plus the
+  private schedule, and syncs them into the Android project. Add `--apk` to build `app/dist/GetReady-v….apk` and print its SHA-256.
+- `node tools/test-app.mjs` tests the newest APK on an emulator (never a real phone): the page starts from the bundled
+  schedule, the database keeps its data across a reload and across the app being stopped, backup and restore round-trip through
+  Android's own file picker, the screen stays awake and is landscape, the feeds that block web pages can be read inside the app,
+  and nothing logs an error. See the top of that file for how to start the emulator.
+- What the person using it saves is kept in a SQLite database inside the app. "Back up or restore data" (in the picker
+  screen) saves or reads one JSON file with Android's "Save to…" and open pickers.
+
 ## Hiking section
 
 `hiking/` is the Hiking section at `…/daily/hiking/`. It shows Hong Kong's country park hiking routes on a Lands Department map, with each

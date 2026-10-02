@@ -364,6 +364,7 @@
 
   // ---------- keep the screen on ----------
   function wake() {
+    if (window.NowNative) return;           // the Android app keeps the screen on itself
     if (!('wakeLock' in navigator)) {
       el.wake.textContent = 'This browser can’t keep the screen on. Use the phone’s “Stay awake while charging” setting.';
       el.wake.hidden = false;

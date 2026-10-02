@@ -9,3 +9,18 @@ node_modules/
 .wrangler/
 # Project notes stay on this computer
 ROADMAP.md
+
+# The Android app: nothing built, signed or personal is ever committed (and never uploaded, not even to Releases)
+*.apk
+*.aab
+*.jks
+*.keystore
+keystore.properties
+app/dist/
+app/node_modules/
+app/android/.gradle/
+app/android/build/
+app/android/app/build/
+app/android/local.properties
+app/android/captures/
+app/android/.idea/

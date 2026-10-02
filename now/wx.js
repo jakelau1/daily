@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   var API = 'https://data.weather.gov.hk/weatherAPI/opendata/';
-  var COPY = '../weather/data/';
+  var COPY = document.documentElement.getAttribute('data-copy') || '../weather/data/';   // the app serves these from another folder
   var RELAY = document.documentElement.getAttribute('data-relay') || '';
   // The relay first, then the recorder's copy.
   function relayed(name) {

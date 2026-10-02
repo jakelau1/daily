@@ -15,14 +15,16 @@
   var MAX_CHOICES = 40;            // per category, most recently used first
   var IDLE_CLOSE = 2 * 60e3;       // close after 2 minutes untouched (not while typing)
 
-  var opt, el = {}, view = 'list', editing = null, forgetMode = false, reason = null, lastTouch = 0, autoShownFor = null;
+  var opt, el = {}, view = 'list', editing = null, extra = null, extras = [], forgetMode = false, reason = null, lastTouch = 0, autoShownFor = null;
 
   // ---------- storage (every access guarded: storage can be unavailable) ----------
+  // The app supplies its own store (window.NowStorage, backed by a database); a browser uses localStorage.
+  function store() { return window.NowStorage || localStorage; }
   function read(key, fallback) {
-    try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; }
+    try { var v = JSON.parse(store().getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; }
   }
   function write(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* the change still shows until the next reload */ }
+    try { store().setItem(key, JSON.stringify(value)); } catch (e) { /* the change still shows until the next reload */ }
   }
   function todaysPicks() {
     var p = read(PICKS_KEY, null);
@@ -65,7 +67,7 @@
   // Remove yesterday's picks once the day has turned over (at 4am).
   function tidy() {
     var p = read(PICKS_KEY, null);
-    if (p && p.day !== opt.dayKey()) { try { localStorage.removeItem(PICKS_KEY); } catch (e) {} }
+    if (p && p.day !== opt.dayKey()) { try { store().removeItem(PICKS_KEY); } catch (e) {} }
   }
 
   // ---------- which blocks ----------
@@ -100,7 +102,7 @@
   function travelText(b, travel) {
     return 'leave by ' + opt.fmtTime(leaveBy(b, travel)) + ' (' + travel.min + ' min travel' + (travel.spare ? ' + ' + travel.spare + ' spare' : '') + ')';
   }
-  function go(v, b) { view = v; editing = b || null; forgetMode = false; draw(); }
+  function go(v, b) { view = v; editing = v === 'extra' ? null : (b || null); extra = v === 'extra' ? b : null; forgetMode = false; draw(); }
 
   // Travel fields: minutes door to door, spare minutes, route note. Returns { box, read() -> travel | null | false }.
   function travelFields(current) {
@@ -134,6 +136,13 @@
     var picks = todaysPicks();
     if (editing && !todayLeft(t).some(function (b) { return b.id === editing.id; })) { view = 'list'; editing = null; }
 
+    // Extra screens added by the host (the app's backup and restore): { label, render(container, done) }.
+    if (view === 'extra' && extra) {
+      el.title.textContent = extra.label;
+      extra.render(body, function () { go('list'); });
+      return;
+    }
+
     if (view === 'list') {
       el.title.textContent = reason === 'planning' ? 'Plan today' : 'Today’s plan';
       var rows = openToday(t).concat(travelToday(t)).sort(function (a, b) { return a.start - b.start; });
@@ -150,6 +159,7 @@
         body.appendChild(row);
       });
       if (addableToday(t).length) body.appendChild(button('plan-btn plan-add', 'Add travel to another block', function () { go('pickblock'); }));
+      extras.forEach(function (x) { body.appendChild(button('plan-btn plan-add', x.label, function () { go('extra', x); })); });
       return;
     }
 
@@ -238,7 +248,7 @@
 
   function open(why) {
     reason = why;
-    view = 'list'; editing = null; forgetMode = false;
+    view = 'list'; editing = null; extra = null; forgetMode = false;
     lastTouch = Date.now();
     el.plan.hidden = false;
     draw();
@@ -277,7 +287,8 @@
     travelFor: travelFor,
     leaveBy: leaveBy,
     // A tap on the display opens the picker while any of today's blocks are still ahead (to choose or add travel).
-    tap: function () { if (todayLeft(opt.now()).length) open('tap'); },
+    tap: function () { if (todayLeft(opt.now()).length || extras.length) open('tap'); },
+    addExtra: function (x) { extras.push(x); },
     tick: tick,
     isOpen: function () { return !el.plan.hidden; }
   };

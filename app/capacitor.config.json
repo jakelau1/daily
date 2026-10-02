@@ -1,0 +1,14 @@
+{
+  "appId": "com.getready.app",
+  "appName": "Get Ready",
+  "webDir": "../build/app-www",
+  "backgroundColor": "#000000",
+  "android": {
+    "backgroundColor": "#000000"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
