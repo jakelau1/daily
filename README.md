@@ -1,6 +1,6 @@
 # Hong Kong
 
-One small site, seven sections, hosted on GitHub Pages at `…/daily/` (https://jakelau1.github.io/daily/). The same files are
+One small site, six sections, hosted on GitHub Pages at `…/daily/` (https://jakelau1.github.io/daily/). The same files are
 also built into an Android app (see "The Android app" below). The site holds nothing personal: personal data lives in
 `private/` (git-ignored) and only ever goes into the app or an encrypted page.
 
@@ -11,7 +11,6 @@ also built into an Android app (see "The Android app" below). The site holds not
 | Hiking 行山 | `hiking/` | AFCD and Lands Department (saved files in `hiking/data/`, live closures from the CSDI Portal) |
 | Arrivals 到站 | `arrivals/` | Citybus, KMB and green-minibus real-time feeds on DATA.GOV.HK; look up any route and add its stops to a board |
 | Roads 路況 | `cams/` | Transport Department journey times and camera images |
-| Day trips 一日遊 | `trips/` | hand-written content in `trips/trips-data.js` |
 | Savings 儲蓄 | `savings/` | none (calculator) |
 | Study 溫書 | `study/` | `study/videos.js` (lecture video links) |
 

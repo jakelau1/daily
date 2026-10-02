@@ -5,7 +5,7 @@ import path from 'node:path';
 
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const OUT = 'assets/fonts';
-const SCAN = ['index.html', '404.html', 'weather', 'hiking', 'arrivals', 'cams', 'trips', 'savings', 'study', 'assets/js', 'partials'];
+const SCAN = ['index.html', '404.html', 'weather', 'hiking', 'arrivals', 'cams', 'savings', 'study', 'assets/js', 'partials'];
 
 async function css(url) {
   const r = await fetch(url, { headers: { 'User-Agent': UA } });

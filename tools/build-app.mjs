@@ -57,7 +57,7 @@ if (problems.length) stop('the schedule has problems:\n  ' + problems.join('\n  
 fs.rmSync(WWW, { recursive: true, force: true });
 fs.mkdirSync(WWW, { recursive: true });
 const cp = (from, to) => fs.cpSync(from, to, { recursive: true, filter: s => !/\.DS_Store$/.test(s) });
-for (const p of ['index.html', '404.html', 'assets', 'weather', 'hiking', 'arrivals', 'cams', 'trips', 'savings', 'study'])
+for (const p of ['index.html', '404.html', 'assets', 'weather', 'hiking', 'arrivals', 'cams', 'savings', 'study'])
   cp(path.join(ROOT, p), path.join(WWW, 'site', p));
 for (const f of ['now.css', 'now.js', 'plan.js', 'wx.js', 'ping.txt']) cp(path.join(ROOT, 'now', f), path.join(WWW, f));
 for (const f of ['store.js', 'app-start.js', 'data-panel.js', 'direct-feeds.js', 'wx-record.js', 'app.css']) cp(path.join(APP, 'web', f), path.join(WWW, f));
@@ -66,6 +66,9 @@ cp(path.join(APP, 'web', 'now.html'), path.join(WWW, 'index.html'));
 const presets = path.join(ROOT, 'private', 'arrivals-presets.js');
 if (fs.existsSync(presets)) fs.copyFileSync(presets, path.join(WWW, 'site', 'arrivals', 'presets.js'));
 else console.warn('Note: private/arrivals-presets.js not found, so the app\'s Arrivals page has no preset stops.');
+// Day trips: written from the owner's home, so it lives in private/trips-site/ and goes into the app only (no public copy).
+const tripsSite = path.join(ROOT, 'private', 'trips-site');
+if (fs.existsSync(tripsSite)) cp(tripsSite, path.join(WWW, 'site', 'trips'));
 const camPresets = path.join(ROOT, 'private', 'cams-presets.js');
 if (fs.existsSync(camPresets)) fs.copyFileSync(camPresets, path.join(WWW, 'site', 'cams', 'presets.js'));
 cp(path.join(APP, 'node_modules', '@capacitor', 'core', 'dist', 'capacitor.js'), path.join(WWW, 'capacitor.js'));

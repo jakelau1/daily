@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://data.weather.gov.hk https://resource.data.one.gov.hk https://rt.data.gov.hk; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <title>A small Hong Kong</title>
-  <meta name="description" content="Weather, hiking trails, live buses, road cameras, day trips, a savings calculator and study videos: one small Hong Kong.">
+  <meta name="description" content="Weather, hiking trails, live buses, road cameras, a savings calculator and study videos: one small Hong Kong.">
   <!--head-->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
@@ -40,7 +40,6 @@
     <li><a href="./hiking/"><span class="swatch" data-sw="hiking" lang="zh-Hant-HK">行</span><span><span class="panel-t">Hiking <span class="zh" lang="zh-Hant-HK">行山</span></span><span class="panel-s">Country-park routes on the map</span></span></a></li>
     <li><a href="./arrivals/"><span class="swatch" data-sw="arrivals" lang="zh-Hant-HK">到</span><span><span class="panel-t">Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></span><span class="panel-s">Live buses and minibuses</span></span></a></li>
     <li><a href="./cams/"><span class="swatch" data-sw="cams" lang="zh-Hant-HK">路</span><span><span class="panel-t">Roads <span class="zh" lang="zh-Hant-HK">路況</span></span><span class="panel-s">Cameras and harbour-tunnel times</span></span></a></li>
-    <li><a href="./trips/"><span class="swatch" data-sw="trips" lang="zh-Hant-HK">一</span><span><span class="panel-t">Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></span><span class="panel-s">15 days out by public transport</span></span></a></li>
     <li><a href="./savings/"><span class="swatch" data-sw="savings" lang="zh-Hant-HK">儲</span><span><span class="panel-t">Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></span><span class="panel-s">Compound-interest calculator</span></span></a></li>
     <li><a href="./study/"><span class="swatch" data-sw="study" lang="zh-Hant-HK">溫</span><span><span class="panel-t">Study <span class="zh" lang="zh-Hant-HK">溫書</span></span><span class="panel-s">Lecture videos by unit</span></span></a></li>
   </ul>
@@ -61,7 +60,7 @@
       <a class="hcard" data-dir="-1" href="hiking/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="hiking"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">行山</span>Hiking</span></a>
       <a class="hcard is-center" data-dir="0" href="arrivals/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="arrivals"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">到站</span>Arrivals</span></a>
       <a class="hcard" data-dir="1" href="cams/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="cams"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">路況</span>Roads</span></a>
-      <a class="hcard" data-dir="2" href="trips/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="trips"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">一日遊</span>Day trips</span></a>
+      <a class="hcard" data-dir="2" href="savings/" tabindex="-1" aria-hidden="true"><span class="hcard-art"><canvas class="art" data-art="savings"></canvas></span><span class="mock" aria-hidden="true"><i></i><i></i><i></i><b></b></span><span class="hcard-title"><span class="zh" lang="zh-Hant-HK">儲蓄</span>Savings</span></a>
     </div>
   </section>
 </div>
@@ -99,7 +98,6 @@
         <button class="chip" type="button" data-tab>Hiking</button>
         <button class="chip" type="button" data-tab>Arrivals</button>
         <button class="chip" type="button" data-tab>Roads</button>
-        <button class="chip" type="button" data-tab>Day trips</button>
         <button class="chip" type="button" data-tab>Savings</button>
         <button class="chip" type="button" data-tab>Study</button>
       </div>
@@ -110,7 +108,6 @@
         <a class="ccard" data-card data-vt href="hiking/"><span class="cover"><canvas class="art" data-art="hiking" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Hiking<span class="zh" lang="zh-Hant-HK">行山</span></span><span class="ccard-s">Country-park routes, height profiles, closures and campsites</span></span><span class="arr" aria-hidden="true">→</span></span></a>
         <a class="ccard" data-card data-vt href="arrivals/"><span class="cover"><canvas class="art" data-art="arrivals" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Arrivals<span class="zh" lang="zh-Hant-HK">到站</span></span><span class="ccard-s">Live buses and minibuses from your stops</span></span><span class="arr" aria-hidden="true">→</span></span></a>
         <a class="ccard" data-card data-vt href="cams/"><span class="cover"><canvas class="art" data-art="cams" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Roads<span class="zh" lang="zh-Hant-HK">路況</span></span><span class="ccard-s">Traffic cameras and harbour-tunnel journey times</span></span><span class="arr" aria-hidden="true">→</span></span></a>
-        <a class="ccard" data-card data-vt href="trips/"><span class="cover"><canvas class="art" data-art="trips" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Day trips<span class="zh" lang="zh-Hant-HK">一日遊</span></span><span class="ccard-s">Fifteen public-transport days out</span></span><span class="arr" aria-hidden="true">→</span></span></a>
         <a class="ccard" data-card data-vt href="savings/"><span class="cover"><canvas class="art" data-art="savings" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Savings<span class="zh" lang="zh-Hant-HK">儲蓄</span></span><span class="ccard-s">A compound-interest calculator with a year-by-year table</span></span><span class="arr" aria-hidden="true">→</span></span></a>
         <a class="ccard" data-card data-vt href="study/"><span class="cover"><canvas class="art" data-art="study" aria-hidden="true"></canvas></span><span class="ccard-body"><span><span class="ccard-t" data-vt-title>Study<span class="zh" lang="zh-Hant-HK">溫書</span></span><span class="ccard-s">105 lecture videos, Units 1 to 9</span></span><span class="arr" aria-hidden="true">→</span></span></a>
       </div>
@@ -118,7 +115,7 @@
     <div class="wrap car-ctrl">
       <button class="icon-btn pause" type="button" data-pause aria-label="Pause autoplay">❚❚</button>
       <div class="dots">
-        <button class="dot" type="button" data-dot aria-label="Weather"></button><button class="dot" type="button" data-dot aria-label="Hiking"></button><button class="dot" type="button" data-dot aria-label="Arrivals"></button><button class="dot" type="button" data-dot aria-label="Roads"></button><button class="dot" type="button" data-dot aria-label="Day trips"></button><button class="dot" type="button" data-dot aria-label="Savings"></button><button class="dot" type="button" data-dot aria-label="Study"></button>
+        <button class="dot" type="button" data-dot aria-label="Weather"></button><button class="dot" type="button" data-dot aria-label="Hiking"></button><button class="dot" type="button" data-dot aria-label="Arrivals"></button><button class="dot" type="button" data-dot aria-label="Roads"></button><button class="dot" type="button" data-dot aria-label="Savings"></button><button class="dot" type="button" data-dot aria-label="Study"></button>
       </div>
       <div class="car-btns">
         <button class="icon-btn" type="button" data-prev aria-label="Previous">←</button>
@@ -137,7 +134,6 @@
       <a class="pcard" data-vt href="hiking/"><span class="pcard-art"><canvas class="art" data-art="hiking" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Map · AFCD</span><span class="pcard-title" data-vt-title>Hiking<span class="zh" lang="zh-Hant-HK">行山</span></span></span><span class="pcard-foot"><span>Routes, climbs, closures</span><span class="arr" aria-hidden="true">→</span></span></a>
       <a class="pcard" data-vt href="arrivals/"><span class="pcard-art"><canvas class="art" data-art="arrivals" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Live · Bus and minibus</span><span class="pcard-title" data-vt-title>Arrivals<span class="zh" lang="zh-Hant-HK">到站</span></span></span><span class="pcard-foot"><span>Citybus, KMB and minibus times</span><span class="arr" aria-hidden="true">→</span></span></a>
       <a class="pcard" data-vt href="cams/"><span class="pcard-art"><canvas class="art" data-art="cams" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Live · Transport Dept</span><span class="pcard-title" data-vt-title>Roads<span class="zh" lang="zh-Hant-HK">路況</span></span></span><span class="pcard-foot"><span>Which tunnel is quickest</span><span class="arr" aria-hidden="true">→</span></span></a>
-      <a class="pcard" data-vt href="trips/"><span class="pcard-art"><canvas class="art" data-art="trips" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Guide · 15 days</span><span class="pcard-title" data-vt-title>Day trips<span class="zh" lang="zh-Hant-HK">一日遊</span></span></span><span class="pcard-foot"><span>Steps, timings, what to check</span><span class="arr" aria-hidden="true">→</span></span></a>
       <a class="pcard" data-vt href="savings/"><span class="pcard-art"><canvas class="art" data-art="savings" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Calculator</span><span class="pcard-title" data-vt-title>Savings<span class="zh" lang="zh-Hant-HK">儲蓄</span></span></span><span class="pcard-foot"><span>Compound interest, in today's money</span><span class="arr" aria-hidden="true">→</span></span></a>
       <a class="pcard" data-vt href="study/"><span class="pcard-art"><canvas class="art" data-art="study" aria-hidden="true"></canvas></span><span><span class="pcard-eyebrow">Library · 105 videos</span><span class="pcard-title" data-vt-title>Study<span class="zh" lang="zh-Hant-HK">溫書</span></span></span><span class="pcard-foot"><span>Searchable video catalogue</span><span class="arr" aria-hidden="true">→</span></span></a>
     </div>
@@ -153,7 +149,7 @@
 <section class="cast band band-dark">
   <div class="wrap center">
     <span class="circles" data-stagger aria-hidden="true">
-      <span class="circle" data-sw="weather" lang="zh-Hant-HK">天</span><span class="circle" data-sw="hiking" lang="zh-Hant-HK">行</span><span class="circle" data-sw="arrivals" lang="zh-Hant-HK">到</span><span class="circle" data-sw="cams" lang="zh-Hant-HK">路</span><span class="circle" data-sw="trips" lang="zh-Hant-HK">遊</span><span class="circle" data-sw="savings" lang="zh-Hant-HK">儲</span><span class="circle" data-sw="study" lang="zh-Hant-HK">溫</span>
+      <span class="circle" data-sw="weather" lang="zh-Hant-HK">天</span><span class="circle" data-sw="hiking" lang="zh-Hant-HK">行</span><span class="circle" data-sw="arrivals" lang="zh-Hant-HK">到</span><span class="circle" data-sw="cams" lang="zh-Hant-HK">路</span><span class="circle" data-sw="savings" lang="zh-Hant-HK">儲</span><span class="circle" data-sw="study" lang="zh-Hant-HK">溫</span>
     </span>
     <h2 class="h2" data-split>Seven corners of one neighbourhood</h2>
     <p class="lede" data-reveal>Built for everyday Hong Kong, from the weather to the bus.</p>
@@ -178,10 +174,6 @@
       <details class="fold" name="sections">
         <summary>Roads <span class="zh" lang="zh-Hant-HK">路況</span></summary>
         <div class="fold-body"><p class="muted fold-p">Which harbour crossing is quickest right now, from the Transport Department's roadside boards, with the cameras to check for yourself and a window onto the city.</p><a class="fold-more" href="cams/">Open Roads <span class="arr" aria-hidden="true">→</span></a></div>
-      </details>
-      <details class="fold" name="sections">
-        <summary>Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></summary>
-        <div class="fold-body"><p class="muted fold-p">Fifteen public-transport days out, with step-by-step routes, when to go, and honest "check this" notes where the details may have changed.</p><a class="fold-more" href="trips/">Open Day trips <span class="arr" aria-hidden="true">→</span></a></div>
       </details>
       <details class="fold" name="sections">
         <summary>Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></summary>
@@ -221,7 +213,6 @@
           <li><a href="./hiking/">Hiking <span class="zh" lang="zh-Hant-HK">行山</span></a></li>
           <li><a href="./arrivals/">Arrivals <span class="zh" lang="zh-Hant-HK">到站</span></a></li>
           <li><a href="./cams/">Roads <span class="zh" lang="zh-Hant-HK">路況</span></a></li>
-          <li><a href="./trips/">Day trips <span class="zh" lang="zh-Hant-HK">一日遊</span></a></li>
           <li><a href="./savings/">Savings <span class="zh" lang="zh-Hant-HK">儲蓄</span></a></li>
           <li><a href="./study/">Study <span class="zh" lang="zh-Hant-HK">溫書</span></a></li>
         </ul>
