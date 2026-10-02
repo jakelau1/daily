@@ -41,7 +41,7 @@
   function loadTemp() {
     return Promise.all([HK.get(API + "rhrread", { retries: 1 }), HK.get(API + "warnsum").catch(function () { return null; })]).then(function (r) {
       var d = r[0], list = (d.temperature && d.temperature.data) || [];
-      var hv = list.filter(function (x) { return /happy valley/i.test(x.place); })[0] || list.filter(function (x) { return /observatory/i.test(x.place); })[0] || list[0];
+      var hv = list.filter(function (x) { return /observatory/i.test(x.place); })[0] || list[0];
       if (!hv) return problem("temp", "empty", "No reading", "The Observatory sent no temperatures.");
       var w = r[1], names = w ? Object.keys(w).map(function (k) { return w[k].name || k; }) : null, x;
       if (names === null) x = badge("info", "Warnings unavailable");

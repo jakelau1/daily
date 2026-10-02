@@ -1,4 +1,4 @@
-/* Hong Kong, from Happy Valley: shared design system.
+/* Hong Kong: shared design system.
    NTTCB's motion and spacing, rebuilt as glass. Dark "night harbour" bands alternate with off-white "plaster" bands.
    Per-section colours come from <html data-section="...">. No inline styles anywhere (CSP), so state lives in classes and custom properties set from JS. */
 :root{

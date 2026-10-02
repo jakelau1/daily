@@ -6,11 +6,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 export const SECTIONS = [
-  { dir: 'weather',  key: 'weather',  en: 'Weather',   zh: '天氣',  sub: 'Happy Valley and 26 other places' },
+  { dir: 'weather',  key: 'weather',  en: 'Weather',   zh: '天氣',  sub: '27 places across Hong Kong' },
   { dir: 'hiking',   key: 'hiking',   en: 'Hiking',    zh: '行山',  sub: 'Country-park routes on the map' },
   { dir: 'arrivals', key: 'arrivals', en: 'Arrivals',  zh: '到站',  sub: 'Live buses and minibuses' },
   { dir: 'cams',     key: 'cams',     en: 'Roads',     zh: '路況',  sub: 'Cameras and harbour-tunnel times' },
-  { dir: 'trips',    key: 'trips',    en: 'Day trips', zh: '一日遊', sub: '15 days out from Happy Valley' },
+  { dir: 'trips',    key: 'trips',    en: 'Day trips', zh: '一日遊', sub: '15 days out by public transport' },
   { dir: 'savings',  key: 'savings',  en: 'Savings',   zh: '儲蓄',  sub: 'Compound-interest calculator' },
   { dir: 'study',    key: 'study',    en: 'Study',     zh: '溫書',  sub: 'Lecture videos by unit' },
 ];

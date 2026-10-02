@@ -295,7 +295,7 @@ function pickRegion() {
   const fromHash = location.hash.slice(1);
   let id = REGIONS.some(r => r.id === fromHash) ? fromHash : null;
   if (!id) { try { id = localStorage.getItem(STORE_KEY); } catch (e) {} }
-  return REGIONS.find(r => r.id === id) || REGIONS[0];
+  return REGIONS.find(r => r.id === id) || REGIONS.find(r => r.id === 'hko') || REGIONS[0];
 }
 function setRegion(r) {
   region = r;

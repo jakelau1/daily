@@ -1,7 +1,7 @@
 # Runs on GitHub's servers every 10 minutes (GitHub may run these late or skip some), and whenever you push a change.
 # 1. Saves the latest Hong Kong Observatory readings into weather/data/history.json (for the past 12 hours),
 #    plus copies of the hourly forecast and air-quality feeds.
-#    Also saves the 2-hour rain nowcast for Happy Valley (weather/data/nowcast.json) for the "now" display.
+#    Also saves the 2-hour rain nowcast for one grid point (weather/data/nowcast.json) for the "now" display.
 # 2. Publishes the site (only the public folders, see "Assemble the site") to GitHub Pages. Scheduled runs only
 #    publish when the data changed; pushes and "Run workflow" always publish.
 # Step 2 is needed because GitHub does not rebuild Pages for commits made by an Action.
