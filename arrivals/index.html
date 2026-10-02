@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://rt.data.gov.hk https://data.etabus.gov.hk https://data.etagmb.gov.hk; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <title>Arrivals 到站 · Hong Kong</title>
-  <meta name="description" content="Live Citybus, KMB and green-minibus arrival times for Happy Valley stops.">
+  <meta name="description" content="Live Citybus, KMB and green-minibus arrival times for any Hong Kong route and stop.">
   <!--head-->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark">
@@ -53,7 +53,7 @@
   <div class="wrap">
     <p class="eyebrow" data-reveal>Live · 30 second refresh</p>
     <h1 class="display" data-split>Arrivals</h1>
-    <p class="lede" data-reveal data-i="3"><span class="zh" lang="zh-Hant-HK">跑馬地到站時間</span> · Buses and minibuses from your stops in Happy Valley.</p>
+    <p class="lede" data-reveal data-i="3"><span class="zh" lang="zh-Hant-HK">到站時間</span> · Look up a bus or minibus route, then add the stops you use to your board.</p>
     <div class="sect-bar" data-reveal data-i="4">
       <button class="btn" id="refreshBtn" type="button">Refresh now</button>
       <span id="status" aria-live="polite"></span>
@@ -74,8 +74,14 @@
       <details class="fold sm lookup" id="lookup">
         <summary id="lookupSummary">Look up a route</summary>
         <div class="fold-body">
+          <form id="lookupForm" class="lookup-form">
+            <label class="fine" for="lookupRoute">Route number</label>
+            <input id="lookupRoute" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" maxlength="6" placeholder="1, 8X, 30…" required>
+            <button class="btn btn-sm" id="lookupGo" type="submit">Look up</button>
+          </form>
+          <p class="fine" id="lookupMsg" aria-live="polite"></p>
           <p class="fine">Every stop on the route, in the order the bus reaches them. Show a stop's times here, or add it to your board.</p>
-          <div id="lookupBody"><p class="fine">Stop lists appear here once they have loaded.</p></div>
+          <div id="lookupBody"></div>
         </div>
       </details>
       <details class="fold sm picker" id="picker">
@@ -85,9 +91,8 @@
       <details class="fold sm">
         <summary>About these times</summary>
         <div class="fold-body">
-          <p class="fine">Times come directly from the official real-time feeds published on DATA.GOV.HK: Citybus, KMB, and the Transport Department's green minibus feed. The page asks for fresh times every 30 seconds while it is open; the feeds themselves update about once a minute.</p>
+          <p class="fine">Times come directly from the official real-time feeds published on DATA.GOV.HK: Citybus, KMB, and the Transport Department's green minibus feed. The page asks for fresh times about once a minute while it is open, and waits longer if a server asks it to slow down; the feeds themselves update about once a minute.</p>
           <p class="fine">Greyed-out times are marked by the operator as scheduled: the vehicle is not yet being tracked, so the time comes from the timetable and is less reliable.</p>
-          <p class="fine">Route 117 is run jointly by KMB and Citybus, so its times are merged from both feeds and each time is labelled with the operator that reported it.</p>
           <p class="fine">Sources: <a href="https://data.gov.hk/en-data/dataset/ctb-eta-transport-realtime-eta">Citybus</a>, <a href="https://data.gov.hk/en-data/dataset/hk-td-tis_21-etakmb">KMB</a>, <a href="https://data.gov.hk/en-data/dataset/hk-td-sm_7-real-time-arrival-data-of-gmb">Green minibus</a>.</p>
         </div>
       </details>
@@ -141,6 +146,7 @@
 <script src="../assets/js/art.js"></script>
 <script src="../assets/js/motion.js"></script>
 <script src="../assets/js/chrome.js"></script>
+<script src="presets.js"></script>
 <script src="arrivals.js"></script>
 </body>
 </html>

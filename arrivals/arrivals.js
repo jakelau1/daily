@@ -1,47 +1,13 @@
 "use strict";
 
 /* =====================================================================
-   SETTINGS — the only part you should normally need to edit.
-   Each group is one heading on the page. "en" and "zh" are the heading
-   text. "match" lists patterns a stop's official name must contain
-   (English or Chinese) to be switched on automatically. Stops that don't
-   match can still be ticked by hand under "Choose stops".
+   SETTINGS
+   The public site has no preset stops: you look a route up, then add the stops you use to your board.
+   An app build may supply its own preset headings in presets.js (window.ArrivalsPresets); each heading lists
+   "match" patterns that a stop's official name must contain to be switched on automatically.
    ===================================================================== */
-const GROUPS = [
-  {
-    id: "kks",
-    en: "King Kwong Street",
-    zh: "景光街",
-    match: [/king\s*kwong/i, /景光/],
-    routes: [
-      { route: "1",   ops: ["CTB"] },
-      { route: "1M",  ops: ["CTB"] },
-      { route: "117", ops: ["KMB", "CTB"] },  // jointly operated
-      { route: "8X",  ops: ["CTB"] }
-    ]
-  },
-  {
-    // You flag the minibus down on Tsoi Tak Street, which has no official
-    // arrival times. So the page uses the last official stop before it
-    // (Yik Yam Street, towards Causeway Bay) and adds a few minutes.
-    id: "ttk",
-    en: "Tsoi Tak Street",
-    zh: "載德街",
-    lookFor: "Yik Yam Street, towards Causeway Bay",
-    match: [/yik\s*yam/i, /奕蔭/],
-    offsetMin: 0,            // minutes from Yik Yam Street to Tsoi Tak Street (adjust under "Choose stops")
-    offsetFrom: "Yik Yam Street",
-    routes: [
-      { route: "30", ops: ["GMB"], region: "HKI", towards: [/causeway/i, /銅鑼灣/] }
-    ]
-  }
-];
-// Routes you can browse stop by stop under "Look up route …".
-// Nothing from here appears on the board until you tap "Add to board".
-const LOOKUP_ROUTES = [
-  { route: "1", ops: ["CTB"] }
-];
-const REFRESH_SECONDS = 30;     // how often to ask for new times
+const GROUPS = Array.isArray(window.ArrivalsPresets) ? window.ArrivalsPresets : [];
+const REFRESH_SECONDS = 60;     // how often to ask for new times (measured: both operators' data is regenerated every 35 to 55 s)
 const STOP_CACHE_DAYS = 7;      // how long to remember each route's stop list
 const MAX_TIMES = 3;            // arrivals shown per row
 
@@ -57,7 +23,11 @@ const LS_CATALOG = "hvEta.catalog.v5";
 const LS_HIDDEN  = "hvEta.hidden.v1";   // auto-matched stops the user switched off
 const LS_ADDED   = "hvEta.added.v2";    // other stops the user switched on
 const LS_OFFSET  = "hvEta.offset.v1";
+const LS_LOOKUPS = "hvEta.lookups.v1";  // routes looked up (so their stops stay on the board)
+const LS_NAMES = "hvEta.names.v1";      // stop names, remembered so each is asked for only once a month
+const NAME_DAYS = 30, NAME_MAX = 4000;
 const LS_SAVED   = "hvEta.saved.v1";    // stops added to the board from the lookup
+const LOOKUP_ROUTES = [];   // { route, ops: [op], region? }, filled from storage and by the lookup form
 const LOOKUP_GROUP = { id: "lookup", en: "Lookup", zh: "", match: [], routes: LOOKUP_ROUTES };
 const ALL_GROUPS = [...GROUPS, LOOKUP_GROUP];   // user's minute adjustments per heading
 
@@ -105,33 +75,73 @@ function logError(where, err) {
   $("#log").textContent = state.log.join("\n");
 }
 
+/* ---------- Being polite to the bus servers ----------
+   One gate for every request: at most MAX_PARALLEL at once; after a "429 Too Many Requests" everything waits
+   (the server's Retry-After if it says, else 10 s doubling to 5 min) and the same request is retried only twice;
+   an address asked for a moment ago is not asked again (rows sharing a stop share one answer). */
+const MAX_PARALLEL = 3;
+const ROUTE_REUSE_MS = 120000;   // a route's details asked for while looking it up are reused when its stops are listed
+let inFlight = 0, blockedUntil = 0, backoffMs = 0;
+const waiters = [];
+const recent = new Map();     // url -> { at, promise }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const takeSlot = () => inFlight < MAX_PARALLEL ? (inFlight++, Promise.resolve()) : new Promise((r) => waiters.push(r));
+const releaseSlot = () => { const next = waiters.shift(); if (next) next(); else inFlight--; };
+const waitMs = () => Math.max(0, blockedUntil - Date.now());
+
 /* Fetch JSON with a timeout. A browser "TypeError" here almost always means
-   no connection, or the server refusing requests from web pages (CORS). */
-async function getJSON(url, timeoutMs = 12000) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
-    if (!res.ok) throw new ApiError(`server replied ${res.status}`, url, res.status);
-    return await res.json();
-  } catch (e) {
-    if (e instanceof ApiError) throw e;
-    if (e && e.name === "AbortError") throw new ApiError("request timed out", url);
-    if (e instanceof SyntaxError) throw new ApiError("reply was not valid data", url);
-    throw new ApiError("could not connect (offline, or blocked by the server)", url);
-  } finally {
-    clearTimeout(timer);
+   no connection, or the server refusing requests from web pages (CORS).
+   reuseMs: if this address was asked for that recently, share that answer. */
+function getJSON(url, timeoutMs = 12000, reuseMs = 0) {
+  if (reuseMs) {
+    const r = recent.get(url);
+    if (r && Date.now() - r.at < reuseMs) return r.promise;
+  }
+  const promise = politeFetch(url, timeoutMs);
+  if (reuseMs) { recent.set(url, { at: Date.now(), promise }); promise.catch(() => recent.delete(url)); }
+  return promise;
+}
+
+async function politeFetch(url, timeoutMs) {
+  for (let attempt = 0; ; attempt++) {
+    while (waitMs() > 0) await sleep(Math.min(waitMs(), 1000));
+    await takeSlot();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+      if (res.status === 429) {
+        const told = Number(res.headers.get("retry-after")) * 1000;
+        backoffMs = told > 0 ? told : backoffMs ? Math.min(backoffMs * 2, 300000) : 10000;
+        blockedUntil = Math.max(blockedUntil, Date.now() + backoffMs);
+        updateStatus();
+        if (attempt >= 2) throw new ApiError(`the server asked us to slow down (too many requests); waiting about ${Math.ceil(backoffMs / 1000)} s`, url, 429);
+        continue;                                         // the slot is released below; wait, then try again
+      }
+      if (!res.ok) throw new ApiError(`server replied ${res.status}`, url, res.status);
+      const data = await res.json();
+      backoffMs = 0;
+      return data;
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      if (e && e.name === "AbortError") throw new ApiError("request timed out", url);
+      if (e instanceof SyntaxError) throw new ApiError("reply was not valid data", url);
+      throw new ApiError("could not connect (offline, or blocked by the server)", url);
+    } finally {
+      clearTimeout(timer);
+      releaseSlot();
+    }
   }
 }
 
 /* Try once more after a short pause if the connection itself failed
    (not if the server answered with an error code). */
-async function getJSONRetry(url) {
-  try { return await getJSON(url); }
+async function getJSONRetry(url, reuseMs = 0) {
+  try { return await getJSON(url, 12000, reuseMs); }
   catch (e) {
     if (e.status) throw e;
     await new Promise((r) => setTimeout(r, 1500));
-    return getJSON(url);
+    return getJSON(url, 12000, reuseMs);
   }
 }
 
@@ -161,12 +171,33 @@ const goesTowards = (rcfg, ...dests) =>
 
 /* ---------- Loading each route's stop list (runs once, then cached) ---------- */
 
+let names = store.get(LS_NAMES) || {};      // "CTB:001234" -> { at, d: { name_en, name_tc } }
+let namesTimer = 0;
+function saveNames() {
+  clearTimeout(namesTimer);
+  namesTimer = setTimeout(() => {
+    namesTimer = 0;
+    const keys = Object.keys(names);
+    if (keys.length > NAME_MAX) keys.sort((a, b) => names[a].at - names[b].at).slice(0, keys.length - NAME_MAX).forEach((k) => delete names[k]);
+    store.set(LS_NAMES, names);
+  }, 1000);
+}
+const flushNames = () => { if (!namesTimer) return; clearTimeout(namesTimer); namesTimer = 0; store.set(LS_NAMES, names); };
+addEventListener("pagehide", flushNames);
+document.addEventListener("visibilitychange", () => { if (document.hidden) flushNames(); });
 const nameCache = new Map();
 function stopName(op, id) {
   const k = op + ":" + id;
+  const hit = names[k];
+  if (hit && Date.now() - hit.at < NAME_DAYS * 864e5) return Promise.resolve(hit.d);
   if (!nameCache.has(k)) {
     const url = op === "CTB" ? `${API.CTB}/stop/${enc(id)}` : `${API.KMB}/stop/${enc(id)}`;
-    const p = getJSON(url).then((r) => r.data || {}).catch((e) => { nameCache.delete(k); throw e; });
+    const p = getJSON(url).then((r) => {
+      const d = r.data || {};
+      if (d.name_en || d.name_tc) { names[k] = { at: Date.now(), d: { name_en: d.name_en, name_tc: d.name_tc } }; saveNames(); }
+      nameCache.delete(k);
+      return d;
+    }).catch((e) => { nameCache.delete(k); throw e; });
     nameCache.set(k, p);
   }
   return nameCache.get(k);
@@ -193,7 +224,7 @@ async function resolveBus(group, rcfg, op) {
       const url = op === "CTB"
         ? `${API.CTB}/route/CTB/${enc(route)}`
         : `${API.KMB}/route/${enc(route)}/${dir}/1`;
-      const d = (await getJSON(url)).data;
+      const d = (await getJSON(url, 12000, ROUTE_REUSE_MS)).data;
       info = Array.isArray(d) ? d[0] : d;
     } catch (e) { /* destination can also come from the arrival data later */ }
 
@@ -223,7 +254,7 @@ async function resolveBus(group, rcfg, op) {
 
 async function resolveGMB(group, rcfg) {
   const route = rcfg.route, region = rcfg.region || "HKI";
-  const r = await getJSONRetry(`${API.GMB}/route/${enc(region)}/${enc(route)}`);
+  const r = await getJSONRetry(`${API.GMB}/route/${enc(region)}/${enc(route)}`, ROUTE_REUSE_MS);
   const variants = r.data || [];
   if (!variants.length) throw new ApiError(`route ${route} is not in the minibus arrival-time system`);
   const stops = [];
@@ -237,7 +268,7 @@ async function resolveGMB(group, rcfg) {
       for (const s of (rs.data && rs.data.route_stops) || []) {
         stops.push({
           key: `GMB|${v.route_id}|${d.route_seq}|${s.stop_seq}`,
-          group: group.id, route, op: "GMB", dirKey: `${v.route_id}-${d.route_seq}`,
+          group: group.id, route, op: "GMB", region, dirKey: `${v.route_id}-${d.route_seq}`,
           routeId: v.route_id, routeSeq: d.route_seq, stopSeq: s.stop_seq, seq: s.stop_seq, stop: s.stop_id,
           name_en: s.name_en || "", name_zh: s.name_tc || "",
           dest_en: d.dest_en || "", dest_zh: d.dest_tc || "",
@@ -250,11 +281,7 @@ async function resolveGMB(group, rcfg) {
   return { stops, incomplete };
 }
 
-async function resolveAll() {
-  HK.setHTML($("#main"), HK.state("loading", { title: "Loading the official stop lists", body: "This takes a few seconds the first time." }));
-  const jobs = [];
-  ALL_GROUPS.forEach((g) => g.routes.forEach((r) => r.ops.forEach((op) => jobs.push({ g, r, op }))));
-
+async function resolveJobs(jobs) {
   const results = await Promise.all(jobs.map(async ({ g, r, op }) => {
     try {
       const res = op === "GMB" ? await resolveGMB(g, r) : await resolveBus(g, r, op);
@@ -278,7 +305,7 @@ async function resolveAll() {
     if (res.incomplete) {
       hadErrors = true;
       problems.push({ group: res.g.id, route: res.r.route, kind: "error",
-        text: `Part of the stop list for ${who} didn't load, so some stops may be missing. Use “Reload stop lists” under “Choose stops”.` });
+        text: `Part of the stop list for ${who} didn't load, so some stops may be missing. Try looking the route up again.` });
     }
     if (res.g.id === "lookup") {
       // Separate keys so lookup choices never clash with the headings above.
@@ -291,21 +318,64 @@ async function resolveAll() {
     }
     catalog.push(...res.stops);
   }
+  return { catalog, problems, hadErrors };
+}
 
-  // Keep the order from SETTINGS, then direction, then stop order along the route.
+// Keep the order from the settings, then direction, then stop order along the route.
+function sortCatalog(catalog) {
   const order = (t) => {
     const gi = ALL_GROUPS.findIndex((g) => g.id === t.group);
     const ri = ALL_GROUPS[gi].routes.findIndex((r) => r.route === t.route);
-    return gi * 1000 + ri * 10 + ALL_GROUPS[gi].routes[ri].ops.indexOf(t.op);
+    return gi * 1000 + ri * 10 + Math.max(0, ALL_GROUPS[gi].routes[Math.max(ri, 0)].ops.indexOf(t.op));
   };
   // Outbound ("O") before inbound ("I") for buses; minibus directions in their own order.
   const dirRank = (k) => (k === "O" ? "0" : k === "I" ? "1" : String(k));
-  catalog.sort((a, b) => order(a) - order(b) || dirRank(a.dirKey).localeCompare(dirRank(b.dirKey)) || a.seq - b.seq);
+  return catalog.sort((a, b) => order(a) - order(b) || dirRank(a.dirKey).localeCompare(dirRank(b.dirKey)) || a.seq - b.seq);
+}
 
-  state.catalog = catalog;
-  state.problems = problems;
-  if (!hadErrors && catalog.length) store.set(LS_CATALOG, { at: Date.now(), catalog, problems });
+function keepCatalog(hadErrors) {
+  if (!hadErrors && state.catalog.length) store.set(LS_CATALOG, { at: Date.now(), catalog: state.catalog, problems: state.problems });
   else store.del(LS_CATALOG);
+}
+
+async function resolveAll() {
+  const jobs = [];
+  ALL_GROUPS.forEach((g) => g.routes.forEach((r) => r.ops.forEach((op) => jobs.push({ g, r, op }))));
+  if (!jobs.length) { state.catalog = []; state.problems = []; return; }
+  HK.setHTML($("#main"), HK.state("loading", { title: "Loading the official stop lists", body: "This takes a few seconds the first time." }));
+  const res = await resolveJobs(jobs);
+  state.catalog = sortCatalog(res.catalog);
+  state.problems = res.problems;
+  keepCatalog(res.hadErrors);
+}
+
+/* ---------- Looking up a route: which operators run it? ---------- */
+
+async function lookupRoute(raw) {
+  const route = String(raw || "").trim().toUpperCase().replace(/\s+/g, "");
+  if (!/^[A-Z0-9]{1,6}$/.test(route)) return "Type a route number, such as 1, 8X or 30.";
+  if (LOOKUP_ROUTES.some((r) => r.route === route)) return `Route ${route} is already listed below.`;
+  const found = [];
+  let reached = 0;
+  const probes = [
+    ["KMB", () => getJSON(`${API.KMB}/route/${enc(route)}/outbound/1`, 12000, ROUTE_REUSE_MS), (j) => j.data && j.data.route, { route, ops: ["KMB"] }],
+    ["CTB", () => getJSON(`${API.CTB}/route/CTB/${enc(route)}`, 12000, ROUTE_REUSE_MS), (j) => j.data && j.data.route, { route, ops: ["CTB"] }],
+    ...["HKI", "KLN", "NT"].map((region) => ["GMB", () => getJSON(`${API.GMB}/route/${region}/${enc(route)}`, 12000, ROUTE_REUSE_MS),
+      (j) => Array.isArray(j.data) && j.data.length, { route, ops: ["GMB"], region }])
+  ];
+  for (const [op, call, exists, entry] of probes) {
+    try { const j = await call(); reached++; if (exists(j)) found.push(entry); }
+    catch (e) { logError(`${OP_LABEL[op]} ${route} route search`, e); }
+  }
+  if (!reached) return "Couldn't reach the route lists. Check your connection and try again.";
+  if (!found.length) return `Route ${route} isn't in the Citybus, KMB or green-minibus real-time feeds.`;
+  LOOKUP_ROUTES.push(...found);
+  store.set(LS_LOOKUPS, LOOKUP_ROUTES);
+  const res = await resolveJobs(found.map((r) => ({ g: LOOKUP_GROUP, r, op: r.ops[0] })));
+  state.catalog = sortCatalog([...state.catalog, ...res.catalog]);
+  state.problems = [...state.problems, ...res.problems];
+  keepCatalog(res.hadErrors);
+  return "";
 }
 
 /* ---------- Arrival times ---------- */
@@ -327,14 +397,14 @@ function normBus(data, tg) {
 
 async function etaFor(tg) {
   if (tg.op === "CTB") {
-    const r = await getJSON(`${API.CTB}/eta/CTB/${enc(tg.stop)}/${enc(tg.route)}`);
+    const r = await getJSON(`${API.CTB}/eta/CTB/${enc(tg.stop)}/${enc(tg.route)}`, 12000, 20000);
     return normBus(r.data, tg);
   }
   if (tg.op === "KMB") {
-    const r = await getJSON(`${API.KMB}/eta/${enc(tg.stop)}/${enc(tg.route)}/1`);
+    const r = await getJSON(`${API.KMB}/eta/${enc(tg.stop)}/${enc(tg.route)}/1`, 12000, 20000);
     return normBus(r.data, tg);
   }
-  const r = await getJSON(`${API.GMB}/eta/route-stop/${tg.routeId}/${tg.routeSeq}/${tg.stopSeq}`);
+  const r = await getJSON(`${API.GMB}/eta/route-stop/${tg.routeId}/${tg.routeSeq}/${tg.stopSeq}`, 12000, 20000);
   const d = r.data || {};
   if (d.enabled === false) {
     return { times: [], note: d.description_en || d.description_tc || "Arrival times are switched off for this stop." };
@@ -356,6 +426,7 @@ async function refresh() {
 
   const results = await pool(visible, 6, etaFor);
   let failures = 0;
+  state.failStreak = results.every((r) => r && r.error) ? (state.failStreak || 0) + 1 : 0;
   visible.forEach((tg, i) => {
     const r = results[i];
     const prev = state.eta[tg.key];
@@ -476,7 +547,8 @@ function render(fresh) {
     return `<section class="stop" aria-labelledby="h-${g.id}">
       <h2 class="plate" id="h-${g.id}"><span class="zh" lang="zh-Hant-HK">${esc(g.zh)}</span><span class="en">${esc(g.en)}</span></h2>
       ${notes}${body}</section>`;
-  }).join("") + savedStops().map((t) => `<section class="stop saved">
+  }).join("") + (!GROUPS.length && !savedStops().length
+      ? HK.state("empty", { title: "Nothing on your board yet", body: "Look up a route below, then tap “Add to board” beside the stops you use.", compact: true }) : "") + savedStops().map((t) => `<section class="stop saved">
       <h2 class="plate"><span class="zh" lang="zh-Hant-HK">${esc(t.name_zh)}</span><span class="en">${esc(t.name_en)}</span></h2>
       <ul class="arows">${rowHTML({ route: t.route, dest_en: t.dest_en, dest_zh: t.dest_zh, name_en: t.name_en,
         name_zh: t.name_zh, targets: [t] }, now, 0)}</ul>
@@ -531,21 +603,20 @@ function renderLookup() {
     }
   }
   const now = Date.now();
-  const many = LOOKUP_ROUTES.reduce((n, r) => n + r.ops.length, 0) > 1;
   body.innerHTML = LOOKUP_ROUTES.flatMap((r) => r.ops.map((op) => {
-    const all = state.catalog.filter((t) => t.group === "lookup" && t.route === r.route && t.op === op);
+    const all = state.catalog.filter((t) => t.group === "lookup" && t.route === r.route && t.op === op && (t.region || "") === (r.region || ""));
     if (!all.length) {
       const p = state.problems.find((x) => x.group === "lookup" && x.route === r.route);
-      return `<p class="warn">${esc(p ? p.text : `The stop list for route ${r.route} hasn't loaded. Try “Reload stop lists” under “Choose stops”.`)}</p>`;
+      return `<p class="warn">${esc(p ? p.text : `The stop list for route ${r.route} hasn't loaded. Try looking the route up again.`)}</p>`;
     }
-    const lk = `${op}|${r.route}`;
+    const lk = `${op}|${r.route}|${r.region || ""}`;
     const dirs = [...new Set(all.map((t) => t.dirKey))];
     const cur = dirs.includes(state.lookupDir[lk]) ? state.lookupDir[lk] : dirs[0];
     const tabs = dirs.length > 1 ? `<div class="dirs" role="group" aria-label="Direction">` + dirs.map((dk) => {
       const d = all.find((t) => t.dirKey === dk);
       return `<button type="button" class="btn btn-ghost btn-sm dir" data-lk="${esc(lk)}" data-dir="${esc(dk)}" aria-pressed="${dk === cur}">To ${esc(d.dest_en || dk)}</button>`;
     }).join("") + `</div>` : "";
-    return (many ? `<h3 class="lk-route">Route ${esc(r.route)} (${esc(OP_LABEL[op])})</h3>` : "") + tabs +
+    return `<h3 class="lk-route">Route ${esc(r.route)} (${esc(OP_LABEL[op])}${r.region ? ", " + esc(r.region) : ""})</h3>` + tabs +
       `<ol class="lk-list">${all.filter((t) => t.dirKey === cur).map((t) => lookupStopHTML(t, now)).join("")}</ol>`;
   })).join("");
   if (focusSel) { const b = body.querySelector(focusSel); if (b) b.focus({ preventScroll: true }); }
@@ -606,6 +677,7 @@ function offsetNote(g) {
 
 function updateStatus() {
   const el = $("#status");
+  if (waitMs() > 0) { el.textContent = `Waiting ${Math.ceil(waitMs() / 1000)} s: the bus servers asked us to slow down`; return; }
   if (state.loading) { el.textContent = "Updating…"; return; }
   if (!state.lastUpdate) { el.textContent = ""; return; }
   const s = Math.max(0, Math.round((Date.now() - state.lastUpdate) / 1000));
@@ -622,6 +694,7 @@ function checkboxHTML(t, withSeq) {
 
 function renderPicker() {
   const body = $("#pickerBody");
+  $("#picker").hidden = !GROUPS.length;           // "Choose stops" only exists when there are preset headings
   const openIds = new Set([...body.querySelectorAll("details[open]")].map((d) => d.id));
   if (!state.catalog.length) {
     body.innerHTML = `<p class="fine">No stop lists could be loaded. Check the messages above, then try again.</p>
@@ -685,7 +758,7 @@ $("#pickerBody").addEventListener("change", (e) => {
 
 async function rescan() {
   store.del(LS_CATALOG);
-  nameCache.clear();
+  nameCache.clear(); names = {}; store.del(LS_NAMES);
   state.eta = {};
   state.expanded.clear();
   await resolveAll();
@@ -701,11 +774,10 @@ async function init() {
   state.added = new Set(store.get(LS_ADDED) || []);
   state.offsets = store.get(LS_OFFSET) || {};
   state.saved = store.get(LS_SAVED) || [];
-  $("#lookupSummary").textContent = LOOKUP_ROUTES.length === 1
-    ? `Look up route ${LOOKUP_ROUTES[0].route}` : "Look up a route";
+  LOOKUP_ROUTES.push(...(store.get(LS_LOOKUPS) || []).filter((r) => r && r.route && Array.isArray(r.ops)));
   const cached = store.get(LS_CATALOG);
-  if (cached && cached.catalog && cached.catalog.length &&
-      Date.now() - cached.at < STOP_CACHE_DAYS * 864e5) {
+  const complete = (c) => LOOKUP_ROUTES.every((r) => c.some((t) => t.group === "lookup" && t.route === r.route && (t.region || "") === (r.region || "")));
+  if (cached && cached.catalog && Date.now() - cached.at < STOP_CACHE_DAYS * 864e5 && complete(cached.catalog)) {
     state.catalog = cached.catalog;
     state.problems = cached.problems || [];
   } else {
@@ -715,13 +787,28 @@ async function init() {
   render();
   refresh();
 
-  setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_SECONDS * 1000);
+  // Ask again every REFRESH_SECONDS while the page is showing; after failures wait twice as long each time (up to 5 min).
+  const tick = async () => {
+    if (!document.hidden) await refresh();
+    setTimeout(tick, Math.min(REFRESH_SECONDS * 1000 * 2 ** Math.min(state.failStreak || 0, 3), 300000));
+  };
+  setTimeout(tick, REFRESH_SECONDS * 1000);
   setInterval(() => { if (!document.hidden && !state.loading) render(); }, 10000);
+  setInterval(() => { if (!document.hidden) updateStatus(); }, 1000);          // keeps the "waiting" countdown true
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && Date.now() - state.lastUpdate > 15000) refresh();
+    if (!document.hidden && Date.now() - state.lastUpdate > 45000) refresh();     // the data is regenerated about once a minute
   });
-  $("#refreshBtn").addEventListener("click", refresh);
+  // "Refresh now" does not ask again within 20 s of the last answer: nothing newer exists.
+  $("#refreshBtn").addEventListener("click", () => { if (Date.now() - state.lastUpdate > 20000) refresh(); });
   HK.onRetry($("#banner"), refresh);
+  $("#lookupForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = $("#lookupRoute"), msg = $("#lookupMsg"), btn = $("#lookupGo");
+    btn.disabled = true; msg.textContent = "Looking up…";
+    const problem = await lookupRoute(input.value);
+    btn.disabled = false; msg.textContent = problem;
+    if (!problem) { input.value = ""; renderPicker(); render(); }
+  });
 }
 
 init();

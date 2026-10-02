@@ -62,6 +62,10 @@ for (const p of ['index.html', '404.html', 'assets', 'weather', 'hiking', 'arriv
 for (const f of ['now.css', 'now.js', 'plan.js', 'wx.js', 'ping.txt']) cp(path.join(ROOT, 'now', f), path.join(WWW, f));
 for (const f of ['store.js', 'app-start.js', 'data-panel.js', 'direct-feeds.js', 'app.css']) cp(path.join(APP, 'web', f), path.join(WWW, f));
 cp(path.join(APP, 'web', 'now.html'), path.join(WWW, 'index.html'));
+// The app's own preset stops for Arrivals (private; the public site has an empty list).
+const presets = path.join(ROOT, 'private', 'arrivals-presets.js');
+if (fs.existsSync(presets)) fs.copyFileSync(presets, path.join(WWW, 'site', 'arrivals', 'presets.js'));
+else console.warn('Note: private/arrivals-presets.js not found, so the app\'s Arrivals page has no preset stops.');
 cp(path.join(APP, 'node_modules', '@capacitor', 'core', 'dist', 'capacitor.js'), path.join(WWW, 'capacitor.js'));
 // The weather reading points (private: they name the home area); the app's direct feed reader gets them from here.
 try { data.feeds = JSON.parse(fs.readFileSync(path.join(ROOT, 'private', 'config.json'), 'utf8')).feeds || null; } catch { data.feeds = null; }
