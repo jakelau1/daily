@@ -2,6 +2,7 @@
 // private schedule into them, syncs them into the Android project, and optionally builds a debug APK.
 //   node tools/build-app.mjs            assemble the web files and sync them into app/android
 //   node tools/build-app.mjs --apk      the same, then build app/dist/GetReady-v<version>-debug.apk
+//   (add --bump to any build to raise the version's patch number first; an existing version is never overwritten)
 //   node tools/build-app.mjs --release  the same, then build app/dist/GetReady-v<version>-release.apk, signed with the release key
 //                                       (made once with tools/release-key.mjs). The key's password is typed into a prompt in a real
 //                                       terminal; it is passed to that one build only and is never written to any file.
@@ -20,6 +21,10 @@ const WWW = path.join(ROOT, 'build', 'app-www');
 const APP = path.join(ROOT, 'app');
 const wantRelease = process.argv.includes('--release');
 const wantApk = process.argv.includes('--apk');
+// Every build is added to app/dist/builds.txt (git-ignored): when, version, kind, checksum.
+function recordBuild(version, kind, sha) {
+  fs.appendFileSync(path.join(APP, 'dist', 'builds.txt'), `${new Date().toISOString()}  v${version}  ${kind}  ${sha}\n`);
+}
 function askHidden(question) {            // read a line from the terminal without showing it
   return new Promise(resolve => {
     process.stdout.write(question);
@@ -84,7 +89,19 @@ if (/\sstyle=|<style/i.test(page)) stop('the app page has inline styles.');
 for (const m of page.matchAll(/(?:src|href)="([^"]+\.(?:js|css|svg))"/g)) if (!fs.existsSync(path.join(WWW, m[1]))) stop(`the app page names ${m[1]}, which is missing.`);
 
 // 4. Version: app/package.json is the source; the Android project follows it.
-const version = JSON.parse(fs.readFileSync(path.join(APP, 'package.json'), 'utf8')).version;
+// A version number is never reused: if a file for this version already exists the build stops, and --bump raises the patch number first.
+const pkgFile = path.join(APP, 'package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf8'));
+if (process.argv.includes('--bump')) {
+  const [a, b, c] = pkg.version.split('.').map(Number);
+  pkg.version = `${a}.${b}.${c + 1}`;
+  fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2) + '\n');
+}
+const version = pkg.version;
+if (wantApk || wantRelease) {
+  const kind = wantRelease ? 'release' : 'debug', existing = path.join(APP, 'dist', `GetReady-v${version}-${kind}.apk`);
+  if (fs.existsSync(existing)) stop(`${path.relative(ROOT, existing)} already exists, and a version number is never reused. Build again with --bump to get ${version.replace(/\d+$/, n => +n + 1)}.`);
+}
 const [maj, min, pat] = version.split('.').map(Number);
 const gradleFile = path.join(APP, 'android', 'app', 'build.gradle');
 let gradle = fs.readFileSync(gradleFile, 'utf8');
@@ -115,7 +132,8 @@ if (wantRelease) {
   const sha = crypto.createHash('sha256').update(fs.readFileSync(out)).digest('hex');
   const apksigner = spawnSync('sh', ['-c', 'ls ~/Android/Sdk/build-tools/*/apksigner | tail -1'], { encoding: 'utf8' }).stdout.trim();
   const cert = apksigner ? (spawnSync(apksigner, ['verify', '--print-certs', out], { encoding: 'utf8' }).stdout.match(/SHA-256 digest: (\w+)/) || [])[1] : null;
-  console.log(`\nRelease APK: app/dist/GetReady-v${version}-release.apk  (${(fs.statSync(out).size / 1048576).toFixed(1)} MB)\nSHA-256 of the file: ${sha}\nSigned by key fingerprint: ${cert || '(apksigner not found; not checked)'}\nIt holds your schedule: keep it on this computer and install it by hand. It is git-ignored and must never be uploaded.`);
+  recordBuild(version, 'release', sha);
+  console.log(`\nVERSION ${version} (release)  SHA-256 ${sha}\nRelease APK: app/dist/GetReady-v${version}-release.apk  (${(fs.statSync(out).size / 1048576).toFixed(1)} MB)\nSigned by key fingerprint: ${cert || '(apksigner not found; not checked)'}\nIt holds your schedule: keep it on this computer and install it by hand. It is git-ignored and must never be uploaded.`);
   process.exit(0);
 }
 
@@ -128,5 +146,6 @@ if (wantApk) {
   const out = path.join(APP, 'dist', `GetReady-v${version}-debug.apk`);
   fs.copyFileSync(built, out);
   const sha = crypto.createHash('sha256').update(fs.readFileSync(out)).digest('hex');
-  console.log(`\nAPK: app/dist/GetReady-v${version}-debug.apk  (${(fs.statSync(out).size / 1048576).toFixed(1)} MB)\nSHA-256: ${sha}\nIt holds your schedule: keep it on this computer and install it by hand. It is git-ignored and must never be uploaded.`);
+  recordBuild(version, 'debug', sha);
+  console.log(`\nVERSION ${version} (debug)  SHA-256 ${sha}\nAPK: app/dist/GetReady-v${version}-debug.apk  (${(fs.statSync(out).size / 1048576).toFixed(1)} MB)\nIt holds your schedule: keep it on this computer and install it by hand. It is git-ignored and must never be uploaded.`);
 }

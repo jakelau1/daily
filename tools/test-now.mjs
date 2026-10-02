@@ -541,10 +541,13 @@ console.log('Weather prompts and warnings');
   WX.warn = { WTCSGNL: { ...tcw('TC3'), actionCode: 'CANCEL' } };
   s = await wxAt(page, 0, nextStep()); wb = await warnBar();
   check(!s.alert && !wb.shown, `a cancelled warning should leave no strip: ${JSON.stringify(wb)}`);
-  for (const code of ['TC9', 'TC10', 'TC8SW']) {
+  // Every Signal 8 direction, and 9 and 10, take over the screen, each with its own title.
+  const SIGNALS = { TC8NE: 'Typhoon Signal No. 8 (north-east)', TC8NW: 'Typhoon Signal No. 8 (north-west)', TC8SE: 'Typhoon Signal No. 8 (south-east)',
+    TC8SW: 'Typhoon Signal No. 8 (south-west)', TC9: 'Typhoon Signal No. 9', TC10: 'Typhoon Signal No. 10' };
+  for (const [code, title] of Object.entries(SIGNALS)) {
     WX.warn = { WTCSGNL: tcw(code) };
     s = await wxAt(page, 0, nextStep());
-    check(s.alert, `${code} must take over the screen`);
+    check(s.alert && (await page.locator('.alert-title').first().textContent()) === title, `${code} must take over the screen as "${title}"`);
   }
   WX.warn = { WRAIN: rainw('WRAINB') };
   s = await wxAt(page, 0, nextStep());
@@ -556,6 +559,17 @@ console.log('Weather prompts and warnings');
   await page.click('#alert');
   s = await goTo(page, 0, tw - 5); wb = await warnBar();
   check(!s.alert && wb.shown && /Amber Rainstorm Warning/.test(wb.text), `after a tap the amber warning should show as a strip: ${JSON.stringify(wb)}`);
+  // The strip moves with the burn-in shift and is dimmer at night.
+  const stripBox = async () => page.evaluate(() => { const r = document.getElementById('warnbar').getBoundingClientRect(); return [Math.round(r.left * 10) / 10, Math.round(r.top * 10) / 10].join(','); });
+  const seenPlaces = new Set([await stripBox()]);
+  for (let i = 0; i < 4; i++) { await page.clock.runFor(3 * 60e3 + 1000); seenPlaces.add(await stripBox()); }
+  tw += 3 * 6;                                   // the fake clock has moved on about 12 minutes; later steps must stay ahead of it
+  check(seenPlaces.size >= 3, `the strip should move with the burn-in shift (saw ${seenPlaces.size} different places in 5 looks)`);
+  const strongDay = await page.evaluate(() => +getComputedStyle(document.getElementById('warnbar')).opacity);
+  await page.evaluate(() => document.documentElement.classList.add('night'));
+  const dimNight = await page.evaluate(() => +getComputedStyle(document.getElementById('warnbar')).opacity);
+  await page.evaluate(() => document.documentElement.classList.remove('night'));
+  check(strongDay === 1 && dimNight < 0.8, `the strip should be full strength by day and dimmed at night (day ${strongDay}, night ${dimNight})`);
   await page.clock.runFor(10 * 60e3);
   WX.warn = {};
   s = await wxAt(page, 0, nextStep());
@@ -563,7 +577,7 @@ console.log('Weather prompts and warnings');
 
   // Weather feed down and an old air-quality copy: readings grey out, and it says so.
   WX.fail = true; WX.airAgeMin = 5 * 60;
-  s = await wxAt(page, 0, 23 * 60 + 30);
+  s = await wxAt(page, 1, 8 * 60);                       // next morning: time must not go backwards (the display re-reads every 5 minutes)
   check(await page.locator('#wx-temp.old').count() === 1, 'temperature not greyed when the readings stopped');
   check(await page.locator('#wx-air.old').count() === 1, 'air quality not greyed when the copy was hours old');
   check((await page.locator('#wx-problem').textContent()) === 'Weather unavailable', 'no notice that the weather is unavailable');
