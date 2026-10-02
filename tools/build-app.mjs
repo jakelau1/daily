@@ -60,7 +60,7 @@ const cp = (from, to) => fs.cpSync(from, to, { recursive: true, filter: s => !/\
 for (const p of ['index.html', '404.html', 'assets', 'weather', 'hiking', 'arrivals', 'cams', 'trips', 'savings', 'study'])
   cp(path.join(ROOT, p), path.join(WWW, 'site', p));
 for (const f of ['now.css', 'now.js', 'plan.js', 'wx.js', 'ping.txt']) cp(path.join(ROOT, 'now', f), path.join(WWW, f));
-for (const f of ['store.js', 'app-start.js', 'data-panel.js', 'direct-feeds.js', 'app.css']) cp(path.join(APP, 'web', f), path.join(WWW, f));
+for (const f of ['store.js', 'app-start.js', 'data-panel.js', 'direct-feeds.js', 'wx-record.js', 'app.css']) cp(path.join(APP, 'web', f), path.join(WWW, f));
 cp(path.join(APP, 'web', 'now.html'), path.join(WWW, 'index.html'));
 // The app's own preset stops for Arrivals (private; the public site has an empty list).
 const presets = path.join(ROOT, 'private', 'arrivals-presets.js');

@@ -90,6 +90,7 @@
     s.next = Date.now() + EVERY[key] * 60e3;
     return SOURCES[key]().then(function (r) {
       s.data = r.data; s.time = r.time; s.fetched = Date.now(); s.error = null;
+      if (window.NowRecord) { try { window.NowRecord(key, r.data); } catch (e) { /* recording must never break the display */ } }   // the app keeps its own history
     }, function (e) {
       s.error = e.name === 'AbortError' ? 'timed out' : (e.message || 'unreachable');
       s.next = Date.now() + Math.min(5, EVERY[key]) * 60e3;   // try again sooner
@@ -98,6 +99,11 @@
   function poll() {
     // options.needs(key), if given, says whether a source is wanted right now (the app skips the big rain file when no walk is near).
     Object.keys(SOURCES).forEach(function (k) { if (opt.needs && !opt.needs(k)) return; if (!S[k] || Date.now() >= S[k].next) refresh(k); });
+  }
+  // The app also records hourly rain-gauge totals (the website has no use for them here, so only when a recorder exists).
+  if (window.NowRecord) {
+    SOURCES.gauges = function () { return get(API + 'hourlyRainfall.php?lang=en').then(function (j) { return { data: j || {}, time: Date.parse(j && j.obsTime) || Date.now() }; }); };
+    EVERY.gauges = 30; OLD_AFTER.gauges = 4 * 60;
   }
   // Is this reading too old to trust? (Also true when there has never been one.)
   function old(key) {

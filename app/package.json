@@ -1,6 +1,6 @@
 {
   "name": "get-ready-app",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "The Android app (Capacitor) built from the same files as the Get Ready website. Build with: node ../tools/build-app.mjs",
   "scripts": {

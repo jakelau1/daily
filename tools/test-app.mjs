@@ -158,7 +158,8 @@ await page.click('Back up or restore data').catch(() => {});
 await page.ev(`${page.btn('Restore from a file')}.click()`, true);                 // user gesture: the file chooser needs one
 check(await tapWhenShown('GetReady-back[^"]*'), 'the file picker did not list the saved backup');
 await page.waitFor(page.btn('Replace what is on this phone'), 15000);
-check((await page.ev("document.getElementById('plan-body').innerText")).includes('2 saved items'), 'the restore confirmation does not say what the file holds');
+const nSaved = Object.keys(savedJson.kv || {}).length;     // includes the weather history the phone records on its own
+check((await page.ev("document.getElementById('plan-body').innerText")).includes(`${nSaved} saved item`), `the restore confirmation does not say what the file holds (expected ${nSaved} saved items)`);
 shot('04-restore-confirm');
 await page.click('Replace what is on this phone');
 await sleep(1500); await page.ready();
@@ -209,6 +210,16 @@ await page.ev('NowDirect.nowcast().then(() => 0)');
 const again = JSON.parse(await page.ev('JSON.stringify(NowDirect.status)'));
 console.log(`      rain nowcast: ${nc.n} half-hour periods; a repeat request got "not changed" ${again.nowcastUnchanged || 0} time(s)`);
 check((again.nowcastUnchanged || 0) >= 1, 'a repeat rain request did not get "not changed" (it downloaded the whole file again)');
+
+console.log('The phone records its own weather readings');
+await page.waitFor("(() => { try { var h = JSON.parse(NowStorage.getItem('wx.history')); return h.temps.length >= 1 && h.gauges.length >= 1; } catch (e) { return false; } })()", 60000);
+const hist = JSON.parse(await page.ev("NowStorage.getItem('wx.history')"));
+check(hist.temps.length >= 1 && Object.keys(hist.temps[0].v).length > 10, 'recorded temperatures are missing or have too few stations');
+check(hist.gauges.length >= 1 && Object.keys(hist.gauges[0].v).length > 10, 'recorded rain gauges are missing or have too few stations');
+check(Number.isFinite(Date.parse(hist.temps[0].t)) && Number.isFinite(Date.parse(hist.gauges[0].t)), 'a recorded reading has no valid time');
+const dup = await page.ev("(() => { const before = JSON.parse(NowStorage.getItem('wx.history')); const r = before.temps[0]; NowRecord('now', { temperature: { recordTime: r.t, data: Object.keys(r.v).map(p => ({ place: p, value: r.v[p] })) } }); const after = JSON.parse(NowStorage.getItem('wx.history')); return [before.temps.length, after.temps.length]; })()");
+check(dup[0] === dup[1], `the same reading was stored twice (${dup[0]} then ${dup[1]})`);
+console.log(`      recorded so far: ${hist.temps.length} temperature reading(s), ${hist.gauges.length} rain-gauge reading(s)`);
 
 console.log('Screen: landscape, stays awake');
 const png = pngSize(shot('01-now'));
