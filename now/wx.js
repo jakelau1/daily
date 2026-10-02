@@ -189,22 +189,27 @@
 
   // ---------- what the display asks for ----------
   var DIRS = { NE: 'north-east', NW: 'north-west', SE: 'south-east', SW: 'south-west' };
-  // Typhoon signal or rainstorm warning in force: [{ kind, title, issued (ms), level }] (rainstorm first if both).
-  function takeover() {
+  // Every typhoon signal and rainstorm warning in force, worst first: [{ kind, title, issued (ms), level, takeover }].
+  // Only Typhoon Signal 8 or higher and the black rainstorm warning take over the screen (takeover: true); the rest
+  // (signals 1 and 3, amber and red rainstorm, anything that can't be read) show as a banner.
+  function warnings() {
     if (old('warn') && !(S.warn && S.warn.data)) return [];
     var out = [], rain = active('WRAIN'), tc = active('WTCSGNL');
     if (rain) {
       var c = { WRAINA: ['amber', 'Amber Rainstorm Warning'], WRAINR: ['red', 'Red Rainstorm Warning'], WRAINB: ['black', 'Black Rainstorm Warning'] }[rain.code];
-      out.push({ kind: 'rain', level: c ? c[0] : 'amber', title: c ? c[1] : (rain.name || 'Rainstorm Warning'), issued: Date.parse(rain.issueTime) });
+      out.push({ kind: 'rain', level: c ? c[0] : 'amber', title: c ? c[1] : (rain.name || 'Rainstorm Warning'), issued: Date.parse(rain.issueTime), takeover: !!c && c[0] === 'black' });
     }
     if (tc) {
       var m = String(tc.code).match(/^TC(\d+)([A-Z]*)$/);
       var title = m ? 'Typhoon Signal No. ' + m[1] + (DIRS[m[2]] ? ' (' + DIRS[m[2]] + ')' : '') : (tc.type || tc.name || 'Tropical Cyclone Warning Signal');
-      out.push({ kind: 'tc', level: m && +m[1] >= 8 ? 'high' : 'low', title: title, issued: Date.parse(tc.issueTime) });
+      var high = !!m && +m[1] >= 8;
+      out.push({ kind: 'tc', level: high ? 'high' : 'low', title: title, issued: Date.parse(tc.issueTime), takeover: high });
     }
     out.forEach(function (a) { a.checked = S.warn.fetched; a.old = old('warn'); });
     return out;
   }
+  function takeover() { return warnings().filter(function (a) { return a.takeover; }); }
+  function banners() { return warnings().filter(function (a) { return !a.takeover; }); }
   // Prompts for an outdoor item today: { walk: bool, move: bool, start, end } in minutes after midnight.
   function prompts(item) {
     var out = [];
@@ -257,6 +262,7 @@
   window.NowWx = {
     init: function (options) { opt = options; poll(); setInterval(poll, 60e3); },
     takeover: takeover,
+    banners: banners,
     prompts: prompts,
     status: status,
     sunset: sunsetToday

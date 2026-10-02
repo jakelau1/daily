@@ -110,6 +110,17 @@ p, h1 { margin: 0; }
 }
 .offline .now { padding-top: 13vh; }
 
+/* Lesser warnings (typhoon signal 1 or 3, amber or red rainstorm): a strip, never a takeover. */
+.warnbar {
+  position: fixed; left: 2vw; bottom: 2vh; max-width: 62vw; z-index: 3; padding: 1.2vh 2vw; border-radius: 1vh;
+  font-size: 3.8vh; font-weight: 700; line-height: 1.15;
+  transform: translate(calc(var(--dx) * var(--nudge)), calc(var(--dy) * var(--nudge)));
+}
+.warnbar.level-amber { background: #f2a900; color: #000; }
+.warnbar.level-red { background: #c8102e; color: #fff; }
+.warnbar.level-low { background: #5a3d00; color: #ffd27a; }
+.night .warnbar { opacity: .7; }
+
 .wake {
   position: fixed; right: 2vw; bottom: 2vh; max-width: 60vw; padding: 1.2vh 2vw;
   font: inherit; font-size: 3.6vh; border: 1px solid #55524c; border-radius: 1vh; background: #111; color: var(--dim);
@@ -174,6 +185,7 @@ p, h1 { margin: 0; }
   .bar { height: 1.2vw; }
   .next { font-size: calc(5.2vw * var(--fit)); }
   .banner, .wake { font-size: 4vw; }
+  .warnbar { font-size: 4vw; max-width: 90vw; }
   .wx { font-size: 5vw; }
   .prompt, .leave { font-size: calc(5.6vw * var(--fit)); }
   .alert-title { font-size: 11vw; }

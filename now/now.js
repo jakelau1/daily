@@ -268,6 +268,7 @@
     }
     renderWx();
     renderAlert(hm + (t.min < 720 ? 'am' : 'pm'), m);
+    renderWarnBar();
     el.bar.style.setProperty('--p', Math.max(0, Math.min(1, m.progress)).toFixed(4));
     if (shown.cat !== m.cat) {
       shown.cat = m.cat;
@@ -316,6 +317,20 @@
     set('alertIssued', a.old ? 'Last checked ' + (a.checked ? fmtTime(hkNow(new Date(a.checked)).min) : 'a while ago') + ', so this may be out of date' : '');
     set('alertClock', clock);
     set('alertNow', m.block ? m.label + ' · ' + m.left : m.label);
+  }
+  // Lesser warnings (Typhoon Signal 1 or 3, amber or red rainstorm) show as a strip; they never take over the screen.
+  var warnKey = '';
+  function renderWarnBar() {
+    if (!el.warnbar) return;                       // an older page without the strip
+    var list = window.NowWx && window.NowWx.banners ? window.NowWx.banners() : [];
+    var text = list.map(function (a) { return a.title + (a.old ? ' (may be out of date)' : ''); }).join(' · ');
+    var level = list.some(function (a) { return a.level === 'red'; }) ? 'red' : list.some(function (a) { return a.level === 'amber'; }) ? 'amber' : 'low';
+    var key = text + '|' + level;
+    if (key === warnKey) return;
+    warnKey = key;
+    el.warnbar.textContent = text;
+    el.warnbar.className = 'warnbar level-' + level;
+    el.warnbar.hidden = !list.length;
   }
   function tick() {
     var now = new Date();
@@ -386,7 +401,7 @@
   }
 
   function start(data) {
-    ['clock', 'date', 'kicker', 'label', 'sub', 'left', 'leave', 'prompt', 'floor', 'next', 'bar', 'banner', 'wake', 'alert'].forEach(function (id) { el[id] = $(id); });
+    ['clock', 'date', 'kicker', 'label', 'sub', 'left', 'leave', 'prompt', 'floor', 'next', 'bar', 'banner', 'warnbar', 'wake', 'alert'].forEach(function (id) { el[id] = $(id); });
     el.wxTemp = $('wx-temp'); el.wxAir = $('wx-air'); el.wxProblem = $('wx-problem');
     el.alertTitles = $('alert-titles'); el.alertIssued = $('alert-issued'); el.alertClock = $('alert-clock'); el.alertNow = $('alert-now');
     el.alert.addEventListener('click', function () { alertHiddenUntil = Date.now() + 10 * 60e3; render(new Date()); });

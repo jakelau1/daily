@@ -510,6 +510,54 @@ console.log('Weather prompts and warnings');
   check(!s.alert, 'takeover stayed after the warnings were cancelled');
   check(!problemsBefore.length, 'weather: ' + problemsBefore.join(' | '));
 
+  // Lesser warnings are a strip, never a takeover: Signal 1 or 3, amber and red rainstorm.
+  // (The display re-reads warnings every 5 minutes and time must not go backwards, so each step is 6 minutes on.)
+  let tw = 21 * 60 + 46;
+  const nextStep = () => { const m = tw; tw += 6; return m; };
+  const warnBar = async () => ({ shown: await page.locator('#warnbar').isVisible(), text: (await page.locator('#warnbar').textContent()) || '', cls: (await page.locator('#warnbar').getAttribute('class')) || '' });
+  const tcw = code => ({ name: 'Tropical Cyclone Warning Signal', code, actionCode: 'ISSUE', issueTime: '2026-10-05T19:40:00+08:00' });
+  const rainw = code => ({ name: 'Rainstorm Warning Signal', code, actionCode: 'ISSUE', issueTime: '2026-10-05T20:30:00+08:00' });
+  WX.warn = { WTCSGNL: tcw('TC3') };
+  s = await wxAt(page, 0, nextStep());
+  let wb = await warnBar();
+  check(!s.alert, 'Typhoon Signal 3 must not take over the screen');
+  check(wb.shown && wb.text === 'Typhoon Signal No. 3', `Signal 3 strip: ${JSON.stringify(wb)}`);
+  WX.warn = { WTCSGNL: tcw('TC1') };
+  s = await wxAt(page, 0, nextStep()); wb = await warnBar();
+  check(!s.alert && wb.shown && wb.text === 'Typhoon Signal No. 1', `Signal 1: takeover ${s.alert}, strip ${JSON.stringify(wb)}`);
+  WX.warn = { WRAIN: rainw('WRAINA') };
+  s = await wxAt(page, 0, nextStep()); wb = await warnBar();
+  check(!s.alert && wb.shown && wb.text === 'Amber Rainstorm Warning' && /level-amber/.test(wb.cls), `amber rainstorm: takeover ${s.alert}, strip ${JSON.stringify(wb)}`);
+  await page.screenshot({ path: `${SHOTS}/19-amber-strip.png` });
+  WX.warn = { WRAIN: rainw('WRAINR') };
+  s = await wxAt(page, 0, nextStep()); wb = await warnBar();
+  check(!s.alert && wb.shown && wb.text === 'Red Rainstorm Warning' && /level-red/.test(wb.cls), `red rainstorm: takeover ${s.alert}, strip ${JSON.stringify(wb)}`);
+  WX.warn = { WTCSGNL: tcw('TC3'), WRAIN: rainw('WRAINA') };
+  s = await wxAt(page, 0, nextStep()); wb = await warnBar();
+  check(!s.alert && wb.shown && /Amber Rainstorm Warning/.test(wb.text) && /Typhoon Signal No. 3/.test(wb.text), `two lesser warnings together: ${JSON.stringify(wb)}`);
+  WX.warn = { WTCSGNL: { ...tcw('TC3'), actionCode: 'CANCEL' } };
+  s = await wxAt(page, 0, nextStep()); wb = await warnBar();
+  check(!s.alert && !wb.shown, `a cancelled warning should leave no strip: ${JSON.stringify(wb)}`);
+  for (const code of ['TC9', 'TC10', 'TC8SW']) {
+    WX.warn = { WTCSGNL: tcw(code) };
+    s = await wxAt(page, 0, nextStep());
+    check(s.alert, `${code} must take over the screen`);
+  }
+  WX.warn = { WRAIN: rainw('WRAINB') };
+  s = await wxAt(page, 0, nextStep());
+  check(s.alert && /^Black Rainstorm Warning/.test(await page.locator('#alert-titles').textContent()), 'a black rainstorm on its own must take over');
+  // Signal 8 with an amber rainstorm: the takeover shows only the signal; the amber warning waits in the strip behind it.
+  WX.warn = { WTCSGNL: tcw('TC8NE'), WRAIN: rainw('WRAINA') };
+  s = await wxAt(page, 0, nextStep());
+  check(s.alert && !/Amber/.test(await page.locator('#alert-titles').textContent()), 'amber rainstorm should not appear in the takeover');
+  await page.click('#alert');
+  s = await goTo(page, 0, tw - 5); wb = await warnBar();
+  check(!s.alert && wb.shown && /Amber Rainstorm Warning/.test(wb.text), `after a tap the amber warning should show as a strip: ${JSON.stringify(wb)}`);
+  await page.clock.runFor(10 * 60e3);
+  WX.warn = {};
+  s = await wxAt(page, 0, nextStep());
+
+
   // Weather feed down and an old air-quality copy: readings grey out, and it says so.
   WX.fail = true; WX.airAgeMin = 5 * 60;
   s = await wxAt(page, 0, 23 * 60 + 30);
