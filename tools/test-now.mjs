@@ -670,12 +670,13 @@ console.log('Weather relay');
   const RELAY = 'https://relay.test';
   const ctxR = await newContext();
   let relayUp = true, copiesUp = true;
-  const seen = [];
+  const seen = [], queries = {};
   // Serve the page as the build would with a relay set (data-relay and the policy entry).
   await servePageWithRelay(ctxR, RELAY);
   const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
   await ctxR.route(`${RELAY}/**`, route => {
-    const name = new URL(route.request().url()).pathname.slice(1);
+    const u = new URL(route.request().url()), name = u.pathname.slice(1);
+    queries[name] = u.search;
     seen.push('relay ' + name);
     if (!relayUp) return route.abort('connectionrefused');
     if (name === 'ocf') return json(route, ocfFixture());
@@ -689,7 +690,8 @@ console.log('Weather relay');
     });
   }
   // The relay's nowcast answer comes from the same made-up weather as the copy's.
-  await ctxR.route(`${RELAY}/nowcast`, async route => {
+  await ctxR.route(/^https:\/\/relay\.test\/nowcast(\?.*)?$/, async route => {
+    queries.nowcast = new URL(route.request().url()).search;
     seen.push('relay nowcast');
     if (!relayUp) return route.abort('connectionrefused');
     const up = Math.floor((simNow - WX.nowcast.ageMin * 60e3) / 60e3) * 60e3;
@@ -707,6 +709,11 @@ console.log('Weather relay');
   check(seen.includes('relay nowcast') && seen.includes('relay ocf') && seen.includes('relay aqhi'), 'the display did not ask the relay: ' + seen.join(', '));
   check(s.prompt.includes('Rain expected from about'), `rain prompt from the relay's nowcast: "${s.prompt}"`);
   check(!(await page.locator('#wx-air.old').count()), 'air quality from the relay should be fresh');
+  // The relay holds no places of its own: the page names them in each request, taken from its private settings.
+  check(queries.ocf === '?points=' + FEEDS.forecastPoints.join(','), `forecast request names the wrong points: "${queries.ocf}"`);
+  const wantAt = /,(-?[\d.]+),(-?[\d.]+),/.exec(FEEDS.nowcastPoint || '');
+  check(!wantAt || queries.nowcast === `?at=${wantAt[1]},${wantAt[2]}`, `rain request names the wrong position: "${queries.nowcast}"`);
+  check(queries.aqhi === '', `the air-quality request should carry no place: "${queries.aqhi}"`);
   check(!page.problems.some(p => /CSP/.test(p)), 'the security policy blocked the relay: ' + page.problems.join(' | '));
   await page.close();
   relayUp = false; copiesUp = true; seen.length = 0;         // relay down: the copies are used instead

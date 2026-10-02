@@ -20,8 +20,15 @@
     var direct = window.NowDirect && window.NowDirect[name];
     if (direct) return direct().catch(function () { return get(COPY + name + '.json'); });
     if (!RELAY) return get(COPY + name + '.json');
-    return get(RELAY + '/' + name).catch(function () { return get(COPY + name + '.json'); });
+    return get(RELAY + '/' + name + relayQuery(name)).catch(function () { return get(COPY + name + '.json'); });
   }
+  // The relay is told which places to answer for (it holds none itself): forecast points, and the rain grid point as "lat,lon".
+  function relayQuery(name) {
+    if (name === 'ocf') return '?points=' + FORECAST_POINTS.map(encodeURIComponent).join(',');
+    if (name === 'nowcast' && NOWCAST_AT) return '?at=' + NOWCAST_AT;
+    return '';
+  }
+  var NOWCAST_AT = '';
   var TEMP_PLACE = 'Hong Kong Observatory', RAIN_PLACE = 'Central & Western District', AIR_STATION = 'Central/Western';
   var FORECAST_POINTS = ['HKO'];     // as the Weather page: the first point listed that forecasts each thing
   var RAIN_ICONS = [53, 54, 62, 63, 64, 65];       // Observatory weather icons with showers or rain (as the Weather page)
@@ -273,6 +280,8 @@
       if (p) {
         TEMP_PLACE = p.tempPlace || TEMP_PLACE; RAIN_PLACE = p.rainPlace || RAIN_PLACE; AIR_STATION = p.airStation || AIR_STATION;
         if (p.forecastPoints && p.forecastPoints.length) FORECAST_POINTS = p.forecastPoints;
+        var at = /,(-?[\d.]+),(-?[\d.]+),/.exec(p.nowcastPoint || '');
+        if (at) NOWCAST_AT = at[1] + ',' + at[2];
       }
       poll(); setInterval(poll, 60e3);
     },
