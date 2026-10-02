@@ -1,15 +1,15 @@
-# Hong Kong, from Happy Valley
+# Hong Kong
 
-One small site, seven sections, hosted on GitHub Pages at `…/daily/` (https://jakelau1.github.io/daily/), copied from `jakelau1/main-hk`. It replaces five separate pages
-(a weather page with a hiking map, a video list, a traffic-camera page, a bus-arrivals page and a day-trips page) and adds a
-compound-interest calculator.
+One small site, seven sections, hosted on GitHub Pages at `…/daily/` (https://jakelau1.github.io/daily/). The same files are
+also built into an Android app (see "The Android app" below). The site holds nothing personal: personal data lives in
+`private/` (git-ignored) and only ever goes into the app or an encrypted page.
 
 | Section | Folder | Data |
 |---|---|---|
 | Home 香港 | `index.html`, `assets/js/home.js` | live stats from the Observatory, Transport Department and Citybus |
 | Weather 天氣 | `weather/` | Hong Kong Observatory, EPD air quality, plus the recorder's saved data in `weather/data/` |
 | Hiking 行山 | `hiking/` | AFCD and Lands Department (saved files in `hiking/data/`, live closures from the CSDI Portal) |
-| Arrivals 到站 | `arrivals/` | Citybus, KMB and green-minibus real-time feeds on DATA.GOV.HK |
+| Arrivals 到站 | `arrivals/` | Citybus, KMB and green-minibus real-time feeds on DATA.GOV.HK; look up any route and add its stops to a board |
 | Roads 路況 | `cams/` | Transport Department journey times and camera images |
 | Day trips 一日遊 | `trips/` | hand-written content in `trips/trips-data.js` |
 | Savings 儲蓄 | `savings/` | none (calculator) |
@@ -19,9 +19,9 @@ There is no build step for the site itself: the files in the repository are what
 
 ## How it is put together
 - **One design system:** `assets/css/site.css` (colours, glass, type, buttons, shared loading/empty/error/stale states),
-  `assets/js/motion.js` (scroll and reveal motion, ported from NTTCB), `assets/js/art.js` (the pointillist section art,
-  drawn in code), `assets/js/net.js` (fetch with timeout and retry, plain-English errors, the state blocks),
-  `assets/js/chrome.js` (nav panel, offline banner). Each section adds its own small CSS and JS next to its page.
+  `assets/js/motion.js` (scroll and reveal motion), `assets/js/art.js` (the pointillist section art, drawn in code),
+  `assets/js/net.js` (fetch with timeout and retry, plain-English errors, the state blocks), `assets/js/chrome.js`
+  (nav panel, offline banner). Each section adds its own small CSS and JS next to its page.
 - **Section colours** come from `<html data-section="...">` (see the top of `site.css`).
 - **Shared header, footer and `<head>`** live in `partials/`. After editing them, or the section list in
   `tools/stamp.mjs`, run `node tools/stamp.mjs`; it rewrites the marked blocks in every page. Commit the result.
@@ -31,17 +31,18 @@ There is no build step for the site itself: the files in the repository are what
 - **Security policy:** every page has a strict Content-Security-Policy that allows only its own files and the specific
   data servers it needs. Inline `<script>`, `<style>` and `style=""` are all refused, so never add them: put code and
   styles in files, and set dynamic sizes from JS (`el.style.setProperty(...)`).
-- **Saved settings** (all in this browser only): `hkwx.region` and `hkwx.cache.v1` (weather), `hvEta.*` (arrivals),
-  `roadcams.jtFrom` (roads).
-- **Old links:** an old root link like `…/daily/#happy-valley` is forwarded to `weather/#happy-valley`
-  by `assets/js/home.js`. `404.html` uses `<base href="/daily/">` because GitHub Pages serves it at any
-  depth; if the site moves to another repository, change that one line.
+- **Saved settings** (all in this browser only): `hkwx.region` and `hkwx.cache.v1` (weather), `hvEta.*` (arrivals: routes
+  looked up, stops on the board, remembered stop names), `roadcams.jtFrom` (roads).
+- **Optional preset files:** `arrivals/presets.js` and `cams/presets.js` are empty on the public site. The Android app build
+  replaces them with its own presets from `private/`.
+- **Old links:** an old root link such as `…/daily/#stanley` is forwarded to `weather/#stanley` by `assets/js/home.js`.
+  `404.html` uses `<base href="/daily/">` because GitHub Pages serves it at any depth; if the site moves to another
+  repository, change that one line.
 
 ## Publishing
-`.github/workflows/record-weather.yml` ("Record weather and publish") runs every 10 minutes and on every push to
-`main`. It saves the latest readings into `weather/data/`, then publishes only the public folders (scheduled runs only
-when something changed) (not `scripts/`, `tools/`,
-`partials/` or `.github/`) to GitHub Pages.
+`.github/workflows/record-weather.yml` ("Record weather and publish") is set to run every 10 minutes and on every push to
+`main`. It saves the latest readings into `weather/data/` and publishes only the public folders (not `scripts/`,
+`tools/`, `partials/` or `.github/`) to GitHub Pages; scheduled runs publish only when something changed.
 
 1. Settings → Pages → Build and deployment → Source: **GitHub Actions** (not "Deploy from a branch"). GitHub does not
    republish the site for commits made by an Action, so the workflow publishes it itself.
@@ -49,93 +50,72 @@ when something changed) (not `scripts/`, `tools/`,
 3. Actions tab → "Record weather and publish" → Run workflow.
 
 Things to know:
-- The recorder commits two or three times an hour (whenever a reading changes). That is expected.
-- GitHub can run scheduled jobs late or skip them when busy, so the odd past hour may be missing.
-- In public repositories GitHub may switch off scheduled workflows after 60 days without activity. If the past hours
-  stop appearing, check the Actions tab and re-enable it.
-- The weather page's hourly forecast comes from the Observatory's automatic forecast (ARWF) data file. It works and
-  is on the Observatory's own server, but it is not in the documented open-data list, so the Observatory could change
-  it without notice.
+- **GitHub's timer is unreliable.** Measured over about 14 hours: 4 scheduled runs instead of about 84. GitHub's documentation
+  says scheduled runs can be delayed or dropped when it is busy. So the saved history has many gaps; the Weather page counts
+  the hours it has ("from 5 of 12 hours recorded") and says that gaps mean no reading was recorded. The recorder keeps
+  36 hours.
+- In public repositories GitHub switches off scheduled workflows after 60 days without activity.
+- The Android app records its own readings (see below); the recorder is best effort for the website.
+- The weather page's hourly forecast comes from the Observatory's automatic forecast data file. It works and is on the
+  Observatory's own server, but it is not in the documented open-data list, so the Observatory could change it without notice.
 - The Observatory's regional wind and 1-minute temperature files can't be read by web pages (CORS), so the "Wind"
   view under Across Hong Kong shows an empty state.
 
 ## Privacy
 No analytics, cookies or third-party scripts or fonts. Each page can only contact its own site and the government
-servers listed in its Content-Security-Policy.
+servers listed in its Content-Security-Policy. Nothing from `private/`, `build/`, `.env`, APKs or signing keys is ever
+committed: `tools/check-private.mjs` runs before every commit (install it once per computer with
+`node tools/check-private.mjs --install`) and refuses a commit that includes them, readable text from the private schedule,
+or any term on a private list of sensitive words. `node tools/check-private.mjs --audit` lists tracked files that still contain one.
 
-## The private "now" display (`now/`)
-
-A page for an always-on phone. It is not linked from any other page. It shows the owner's private schedule, which
-lives in `private/schedule.html` (git-ignored) and is only ever published encrypted with
-[StatiCrypt](https://github.com/robinmoisson/staticrypt) inside `now/index.html`. Everything else in `now/` is ordinary
-public code with no schedule content in it. The settings that tie the display to the schedule's own names are in
-`private/config.json` (also git-ignored); the build stops if it is missing.
-
-After saving a new `private/schedule.html`:
+## The display page (`now/`)
+A page for an always-on phone, not linked from any other page. Its data (a private schedule) is read from
+`private/schedule.html` and is only ever published encrypted with [StatiCrypt](https://github.com/robinmoisson/staticrypt)
+inside `now/index.html`; everything else in `now/` is ordinary public code with no private content. The settings that tie it
+to the private data are in `private/config.json` (git-ignored); the build stops if it is missing. The Android app is replacing
+this page; it stays until the app does everything it does.
 
     npm run now                 # rebuild and check the encrypted page
-    npm run now -- --publish    # the same, then commit and push it (the site updates within a few minutes)
+    npm run now -- --publish    # the same, then commit and push it
 
-The display picks up the new version at its next daily reload, or straight away if you reload it.
-
-How it fits together:
-- `tools/extract-schedule.mjs` reads the blocks, categories (with their floors) and routines out of the schedule file.
-- `tools/build-now.mjs` encrypts that data with the password in `.env` (git-ignored) and the salt in
-  `.staticrypt.json` (not secret; keep it, because a new salt makes every device ask for the password again). It then
-  checks the result: no readable schedule text, no inline code, and it decrypts back to the same data.
-- `tools/now-template.html` is the page around the encrypted data. StatiCrypt's own template uses inline code, which
-  the site's Content-Security-Policy refuses, so this one keeps the data in a JSON block and the code in
-  `now/unlock.js` (unlocking), `now/now.js` (the display) and `now/vendor/staticrypt.js` (StatiCrypt's code, made by
-  the build). The policy did not need loosening.
-- "Remember on this device" stores a salted hash of the password in that browser, with no expiry, so the daily
-  reload unlocks by itself. To forget it on a device, open the page with `#staticrypt_logout` at the end of the address.
-- `npm run check-live` checks the published page on GitHub Pages the way the phone uses it.
-- `npm run test-now` tests the encrypted page end to end in headless Chromium with simulated days and times
-  (screenshots in `build/screenshots/`, git-ignored).
-- `tools/check-private.mjs` runs before every commit (install it once per computer with
-  `node tools/check-private.mjs --install`) and stops a commit that includes `private/`, `build/`, `.env` or readable
-  schedule text.
-
-What the page does, in general terms: it shows the current item and what comes next, with weather prompts and
-warnings from the official feeds, and a small picker for choices made during the day. It shifts its layout slightly
-every few minutes and dims at night to reduce burn-in, asks the browser to keep the screen on, reloads once a day
-when the site can be reached, greys out any number that has stopped updating, and shows a banner when the connection
-is lost. Choices made on the page are saved in that browser only.
+- `tools/extract-schedule.mjs` reads the private data; `tools/build-now.mjs` encrypts it with the password in `.env`
+  (git-ignored) and the salt in `.staticrypt.json` (not secret; keep it, a new salt makes every device ask again), then checks
+  the result: no readable private text, no inline code, and it decrypts back to the same data.
+- `tools/now-template.html` is the page around the encrypted data (the markup lives here, not in `now/index.html`, which is
+  build output). The code is in `now/unlock.js`, `now/now.js`, `now/wx.js` (weather), `now/plan.js` and `now/vendor/staticrypt.js`.
+- Weather for the display: warnings, current readings and sunset straight from the Observatory; the forecast, air quality and
+  rain nowcast (which block web pages) through the relay, else the recorder's copies. Each reading keeps its own time and greys
+  out when old. Only Typhoon Signal 8 or higher and the black rainstorm warning take over the screen; lower signals and amber or
+  red rainstorms show as a strip.
+- `npm run test-now` tests it end to end in headless Chromium with simulated days and times (screenshots in `build/screenshots/`,
+  git-ignored). `npm run check-live` checks the published page the way the phone uses it.
 
 ### Weather relay (`relay/`)
-GitHub ran the recorder far less often than scheduled (main-hk: 7 of about 70 scheduled runs over 36 hours; this
-repository: none in its first 5 hours), so its copies can be hours old. The relay is a tiny program on Cloudflare
-Workers (free plan) that fetches the official files when the display asks, keeps each answer for a few minutes, and
-answers only pages on `https://jakelau1.github.io`. It answers in the same shapes as the recorder's copies:
-`/ocf`, `/aqhi`, `/nowcast`. No schedule data passes through it; Cloudflare sees each request's time and the phone's
-internet address.
-
-Setting it up (once, at the computer):
-1. Create a free account at cloudflare.com.
-2. `npx wrangler login` (opens the browser to allow access).
-3. `npm run relay-deploy` (deploys it, checks it answers, saves its address in `relay/url.txt`, rebuilds the page).
-   The first time, Cloudflare may ask you to choose a `workers.dev` name.
-4. `npm run now -- --publish`.
-
-Until then `relay/url.txt` doesn't exist and the display uses the recorder's copies. To test the relay on this
-computer: `npx wrangler dev --config relay/wrangler.toml --var ALLOWED_ORIGINS:http://127.0.0.1:8765`.
+A small program on Cloudflare Workers (free plan) that fetches the three official feeds that block web pages, keeps each answer
+for a few minutes, and answers only pages on `https://jakelau1.github.io`, in the same shapes as the recorder's copies: `/ocf`,
+`/aqhi`, `/nowcast`. Its configuration switches Cloudflare's request logging off. It is for the website only; the Android app
+reads the feeds itself. Deploying it needs a Cloudflare sign-in (`npx wrangler login`, then `npx wrangler logout` straight
+after); no Cloudflare token or password is ever saved in a file. `npm run relay-deploy` deploys it and records its address in
+`relay/url.txt`.
 
 ## The Android app (`app/`)
+The same files, built a second way: an Android app made with [Capacitor](https://capacitorjs.com) that holds the display,
+the private schedule and, later, more. It is never published: its files and APKs stay on the owner's computer (git ignores
+them, and the build script stops if it does not).
 
-The same files, built a second way: an Android app made with [Capacitor](https://capacitorjs.com) that holds the Now
-display, the owner's private schedule and, later, more. It is never published: its files and the APK stay on the
-owner's computer (git ignores them, and the build script stops if it is not).
-
-- `app/` is the Capacitor project (its own `package.json`); `app/web/` is the app's own web code; `app/android/` is the
-  Android project (screen kept on, landscape, system bars hidden, no automatic Android backups).
+- `app/` is the Capacitor project; `app/web/` is the app's own web code (database, backup panel, direct feed reader, weather
+  recorder); `app/android/` is the Android project (screen kept on, landscape, system bars hidden, no automatic Android backups).
 - `node tools/build-app.mjs` gathers the web files into `build/app-www/` (git-ignored) from this repository's sources plus the
-  private schedule, and syncs them into the Android project. Add `--apk` to build `app/dist/GetReady-v….apk` and print its SHA-256.
-- `node tools/test-app.mjs` tests the newest APK on an emulator (never a real phone): the page starts from the bundled
-  schedule, the database keeps its data across a reload and across the app being stopped, backup and restore round-trip through
-  Android's own file picker, the screen stays awake and is landscape, the feeds that block web pages can be read inside the app,
-  and nothing logs an error. See the top of that file for how to start the emulator.
-- What the person using it saves is kept in a SQLite database inside the app. "Back up or restore data" (in the picker
-  screen) saves or reads one JSON file with Android's "Save to…" and open pickers.
+  private data, and syncs them into the Android project. `--apk` builds `app/dist/GetReady-v….apk` (debug-signed) and prints its
+  SHA-256. `--release` builds the release-signed APK; it asks for the key password in a terminal prompt and never stores it.
+- `node tools/release-key.mjs create | check | check-backup` makes the release key outside the project folder, and checks a
+  backup copy of it by fingerprint. Run it in a real terminal.
+- The app reads the forecast, air-quality and rain feeds directly (`app/web/direct-feeds.js`), fetching the large rain file only when
+  it has changed and only while it is needed, and records its own temperature and rain-gauge readings in its database
+  (`app/web/wx-record.js`). What the user saves is kept in a SQLite database; "Back up or restore data" saves or reads one JSON file.
+- `node tools/test-app.mjs` tests the newest APK on an emulator (never a real phone). See the top of that file for how to start it.
+- `node tools/test-arrivals.mjs` tests the Arrivals page against fake bus servers (no real requests): first visit asks for nothing,
+  requests are shared and paced, stop names are remembered, and "429 Too Many Requests" makes everything wait.
 
 ## Hiking section
 
@@ -154,8 +134,7 @@ the site.
 - **Live closures:** fetched from the CSDI Portal once per visit. If that fails or looks wrong,
   the page uses the saved copy in `hiking/data/closed_trails.geojson` and shows its date.
 
-The files in `hiking/data/` are made by a separate project on Jake's computer (the "Hiking
-Trails Webapp Data" pipeline), which works out the heights, climbs and times. Its `pipeline/`
+The files in `hiking/data/` are made by a separate data pipeline kept on the maintainer's computer, which works out the heights, climbs and times. Its `pipeline/`
 folder has the full details: `README.md`, `DECISIONS.md` and `SOURCES.md`.
 
 ### Refreshing the data
@@ -164,7 +143,7 @@ In the pipeline project folder:
    summary at the end; it should say "Nothing needs attention".
 2. `.venv/bin/python pipeline/run.py --copy` copies the new files into this repository's
    `hiking/data/` and lists what changed. It doesn't commit or publish anything.
-3. In this repository: pull first (the recorder commits here twice an hour), open the Hiking page
+3. In this repository: pull first (the recorder commits here regularly), open the Hiking page
    locally to check it, then commit and push. The push republishes the site.
 
 ### Other files
