@@ -8,7 +8,7 @@ const KEEP_HOURS = 36;
 // Every forecast point the page might ask for (HKO station codes), in alphabetical order.
 const OCF_CODES = [
   'CCH','HKA','HKO','HKP','HKS','HPV','JKB','KLT','KP','KTG','LFS','PLC','SE1','SEK','SHA','SKG','SKW','SSP','STY',
-  'TKL','TPO','TU1','TW','TWN','TY1','WTS','YCT','YLP'
+  'TKL','TPO','TUN','TW','TWN','TY1','WTS','YLP'
 ];
 
 async function text(url) {
